@@ -85,7 +85,7 @@ export default function BienModal({ bien, onClose }: { bien: Bien; onClose: () =
           {/* Résumé IA */}
           {resume && (
             <div style={{ backgroundColor: '#3b82f615', border: '1px solid #3b82f630' }}
-                 className="rounded-lg px-4 py-3 text-sm text-blue-300">
+                 className="rounded-lg px-4 py-3 text-sm text-white">
               💡 {resume}
             </div>
           )}
@@ -138,7 +138,7 @@ export default function BienModal({ bien, onClose }: { bien: Bien; onClose: () =
               <div style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
                    className="rounded-xl p-4 space-y-2">
                 {pourquoi.map((r, i) => (
-                  <p key={i} className="text-sm text-white flex gap-2"><span className="text-blue-400 shrink-0">→</span>{r}</p>
+                  <p key={i} className="text-sm text-white flex gap-2"><span className="text-white shrink-0">→</span>{r}</p>
                 ))}
               </div>
             </section>
@@ -273,7 +273,7 @@ export default function BienModal({ bien, onClose }: { bien: Bien; onClose: () =
               {opport.length > 0 && (
                 <div style={{ backgroundColor: '#3b82f610', border: '1px solid #3b82f630' }}
                      className="rounded-xl p-4">
-                  <p className="text-xs font-semibold text-blue-400 mb-2">🚀 Opportunités cachées</p>
+                  <p className="text-xs font-semibold text-white mb-2">🚀 Opportunités cachées</p>
                   {opport.map((f, i) => <p key={i} className="text-sm text-white">· {f}</p>)}
                 </div>
               )}
