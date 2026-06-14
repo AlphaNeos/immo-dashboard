@@ -245,7 +245,10 @@ export default function BienModal({ bien, onClose }: { bien: Bien; onClose: () =
                        className="flex items-center justify-between gap-4 rounded-lg p-3 transition-opacity hover:opacity-75"
                        style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', textDecoration: 'none' }}>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-blue-400 truncate">{c.adresse || '—'}</p>
+                        <span className="text-sm text-blue-400 truncate flex items-center gap-1">
+                          <span className="truncate">{c.adresse || '—'}</span>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                        </span>
                         <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
                           {[c.chambres != null && `${c.chambres} ch.`].filter(Boolean).join(' · ')}
                         </p>
