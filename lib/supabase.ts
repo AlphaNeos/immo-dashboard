@@ -35,6 +35,7 @@ export type Bien = {
   premiere_detection:  string | null
   derniere_vue:        string | null
   nb_remises_en_vente: number | null
+  comparables_reels:   { url: string; prix: number | null; surface: number | null; adresse: string | null; chambres: number | null }[] | null
 }
 
 export type HistoriquePrix = {

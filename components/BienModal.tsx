@@ -40,6 +40,9 @@ export default function BienModal({ bien, onClose }: { bien: Bien; onClose: () =
   const travaux: Record<string, number> = a.detail_travaux || {}
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const comps:   any[] = a.comparables   || []
+  const comparablesReels = (bien.comparables_reels && bien.comparables_reels.length > 0)
+    ? bien.comparables_reels
+    : null
   const forts:   string[] = a.points_forts   || []
   const attent:  string[] = a.points_attention || []
   const opport:  string[] = a.opportunites_cachees || []
@@ -230,25 +233,45 @@ export default function BienModal({ bien, onClose }: { bien: Bien; onClose: () =
           )}
 
           {/* Comparables */}
-          {comps.length > 0 && (
+          {(comparablesReels || comps.length > 0) && (
             <section>
               <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'white' }}>
-                Comparables marché ({comps.length})
+                Comparables marché ({(comparablesReels ?? comps).length})
               </h2>
               <div className="space-y-2">
-                {comps.map((c, i) => (
-                  <div key={i} style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
-                       className="rounded-lg p-3 flex items-center justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-white truncate">{c.adresse as string || c.ville as string || '—'}</p>
-                      {c.notes && <p className="text-xs mt-0.5 truncate" style={{ color: 'white' }}>{c.notes as string}</p>}
+                {comparablesReels
+                  ? comparablesReels.map((c, i) => (
+                    <div key={i} style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
+                         className="rounded-lg p-3 flex items-center justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <a href={c.url} target="_blank" rel="noopener noreferrer"
+                           className="text-sm text-blue-400 hover:text-blue-300 underline truncate block">
+                          {c.adresse || '—'}
+                        </a>
+                        {c.chambres != null && (
+                          <p className="text-xs mt-0.5" style={{ color: 'white' }}>{c.chambres} ch.</p>
+                        )}
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-semibold text-white">{fmt(c.prix)}</p>
+                        {c.surface && <p className="text-xs" style={{ color: 'white' }}>{c.surface} m²</p>}
+                      </div>
                     </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-sm font-semibold text-white">{fmt(c.prix as number)}</p>
-                      {c.surface && <p className="text-xs" style={{ color: 'white' }}>{c.surface as number} m²</p>}
+                  ))
+                  : comps.map((c, i) => (
+                    <div key={i} style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
+                         className="rounded-lg p-3 flex items-center justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-white truncate">{c.adresse as string || c.ville as string || '—'}</p>
+                        {c.notes && <p className="text-xs mt-0.5 truncate" style={{ color: 'white' }}>{c.notes as string}</p>}
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-semibold text-white">{fmt(c.prix as number)}</p>
+                        {c.surface && <p className="text-xs" style={{ color: 'white' }}>{c.surface as number} m²</p>}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                }
               </div>
             </section>
           )}
