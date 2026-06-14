@@ -34,7 +34,7 @@ export default function PriceChart({ bienId }: { bienId: string }) {
 
   return (
     <div style={{ border: '1px solid var(--border)', borderRadius: 8 }} className="p-3">
-      <p className="text-xs mb-2" style={{ color: 'var(--muted)' }}>
+      <p className="text-xs mb-2" style={{ color: 'white' }}>
         Historique prix ({data.length} points) ·{' '}
         <span style={{ color }}>{diff > 0 ? '+' : ''}{diff.toLocaleString('fr-BE')}€</span>
       </p>
@@ -46,7 +46,7 @@ export default function PriceChart({ bienId }: { bienId: string }) {
           return <circle key={i} cx={x} cy={y} r="2.5" fill={color} />
         })}
       </svg>
-      <div className="flex justify-between text-xs mt-1" style={{ color: 'var(--muted)' }}>
+      <div className="flex justify-between text-xs mt-1" style={{ color: 'white' }}>
         <span>{first.toLocaleString('fr-BE')}€</span>
         <span>{last.toLocaleString('fr-BE')}€</span>
       </div>

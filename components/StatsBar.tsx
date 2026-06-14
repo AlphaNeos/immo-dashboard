@@ -15,7 +15,7 @@ export default function StatsBar({ stats }: { stats: Stats }) {
              style={{ backgroundColor: 'var(--surface)', borderLeft: `3px solid ${c.color}`, border: `1px solid var(--border)`, borderLeftColor: c.color }}
              className="rounded-lg p-4">
           <p className="text-2xl font-bold text-white">{c.value}</p>
-          <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{c.label}</p>
+          <p className="text-xs mt-1" style={{ color: 'white' }}>{c.label}</p>
         </div>
       ))}
     </div>

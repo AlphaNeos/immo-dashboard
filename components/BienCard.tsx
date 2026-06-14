@@ -40,7 +40,7 @@ export default function BienCard({ bien, onClick }: { bien: Bien; onClick: () =>
             <p className="text-white font-semibold text-sm leading-tight truncate">
               {bien.titre || `Maison ${bien.ville || ''}`}
             </p>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
+            <p className="text-xs mt-0.5" style={{ color: 'white' }}>
               📍 {bien.ville || bien.adresse || '—'}
             </p>
           </div>
@@ -57,10 +57,10 @@ export default function BienCard({ bien, onClick }: { bien: Bien; onClick: () =>
           <div>
             <p className="text-xl font-bold text-white">{fmt(bien.prix)}</p>
             {bien.prix !== bien.prix_initial && bien.prix_initial && (
-              <p className="text-xs line-through" style={{ color: 'var(--muted)' }}>{fmt(bien.prix_initial)}</p>
+              <p className="text-xs line-through" style={{ color: 'white' }}>{fmt(bien.prix_initial)}</p>
             )}
           </div>
-          <div className="text-xs space-y-0.5" style={{ color: 'var(--muted)' }}>
+          <div className="text-xs space-y-0.5" style={{ color: 'white' }}>
             {bien.chambres && <p>🛏 {bien.chambres} ch.</p>}
             {bien.surface  && <p>📐 {bien.surface} m²</p>}
           </div>
@@ -79,7 +79,7 @@ export default function BienCard({ bien, onClick }: { bien: Bien; onClick: () =>
               <span className="text-xs font-bold" style={{ color: recoColor }}>{scoreIA}/10</span>
             </div>
           )}
-          <span className="text-xs" style={{ color: 'var(--muted)' }}>📡 {sources}</span>
+          <span className="text-xs" style={{ color: 'white' }}>📡 {sources}</span>
         </div>
 
         {/* Métriques financières */}
@@ -88,7 +88,7 @@ export default function BienCard({ bien, onClick }: { bien: Bien; onClick: () =>
                style={{ borderTop: '1px solid var(--border)' }}>
             {pvNette !== undefined && (
               <div>
-                <p className="text-xs" style={{ color: 'var(--muted)' }}>Plus-value nette</p>
+                <p className="text-xs" style={{ color: 'white' }}>Plus-value nette</p>
                 <p className="text-sm font-semibold" style={{ color: pvNette > 0 ? '#22c55e' : '#ef4444' }}>
                   {pvNette > 0 ? '+' : ''}{(pvNette as number).toLocaleString('fr-BE')}€
                 </p>
@@ -96,7 +96,7 @@ export default function BienCard({ bien, onClick }: { bien: Bien; onClick: () =>
             )}
             {bien.loyer_estime && (
               <div>
-                <p className="text-xs" style={{ color: 'var(--muted)' }}>Loyer estimé</p>
+                <p className="text-xs" style={{ color: 'white' }}>Loyer estimé</p>
                 <p className="text-sm font-semibold text-white">{fmt(bien.loyer_estime)}/mois</p>
               </div>
             )}

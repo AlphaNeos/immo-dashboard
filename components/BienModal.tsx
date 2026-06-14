@@ -12,7 +12,7 @@ function fmt(n: number | null | undefined, suffix = '€') {
 function Row({ label, value, accent }: { label: string; value: string; accent?: string }) {
   return (
     <div className="flex justify-between items-baseline py-1.5" style={{ borderBottom: '1px solid var(--border)' }}>
-      <span className="text-sm" style={{ color: 'var(--muted)' }}>{label}</span>
+      <span className="text-sm" style={{ color: 'white' }}>{label}</span>
       <span className="text-sm font-semibold" style={{ color: accent || 'var(--text)' }}>{value}</span>
     </div>
   )
@@ -61,7 +61,7 @@ export default function BienModal({ bien, onClose }: { bien: Bien; onClose: () =
              className="sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <p className="font-bold text-white leading-tight">{bien.titre || 'Maison'}</p>
-            <p className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>
+            <p className="text-sm mt-0.5" style={{ color: 'white' }}>
               📍 {bien.adresse || bien.ville || '—'}
             </p>
           </div>
@@ -73,7 +73,7 @@ export default function BienModal({ bien, onClose }: { bien: Bien; onClose: () =
               </span>
             )}
             <button onClick={onClose}
-                    style={{ color: 'var(--muted)', border: '1px solid var(--border)', backgroundColor: 'var(--bg)' }}
+                    style={{ color: 'white', border: '1px solid var(--border)', backgroundColor: 'var(--bg)' }}
                     className="w-8 h-8 rounded-lg flex items-center justify-center hover:text-white transition-colors text-lg">
               ×
             </button>
@@ -109,7 +109,7 @@ export default function BienModal({ bien, onClose }: { bien: Bien; onClose: () =
 
           {/* Infos générales */}
           <section>
-            <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--muted)' }}>
+            <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'white' }}>
               Informations
             </h2>
             <div style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
@@ -132,7 +132,7 @@ export default function BienModal({ bien, onClose }: { bien: Bien; onClose: () =
           {/* Pourquoi intéressant */}
           {pourquoi.length > 0 && (
             <section>
-              <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--muted)' }}>
+              <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'white' }}>
                 Pourquoi intéressant
               </h2>
               <div style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
@@ -147,7 +147,7 @@ export default function BienModal({ bien, onClose }: { bien: Bien; onClose: () =
           {/* Financier */}
           {(a.prix_negociation || a.frais_acquisition) && (
             <section>
-              <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--muted)' }}>
+              <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'white' }}>
                 Analyse financière
               </h2>
               <div style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
@@ -155,7 +155,7 @@ export default function BienModal({ bien, onClose }: { bien: Bien; onClose: () =
                 {a.prix_negociation && <Row label="Prix à négocier" value={fmt(a.prix_negociation as number)} accent="#f59e0b" />}
                 {a.justification_negociation && (
                   <div className="py-2" style={{ borderBottom: '1px solid var(--border)' }}>
-                    <p className="text-xs" style={{ color: 'var(--muted)' }}>Justification négociation</p>
+                    <p className="text-xs" style={{ color: 'white' }}>Justification négociation</p>
                     <p className="text-sm text-white mt-1">{a.justification_negociation as string}</p>
                   </div>
                 )}
@@ -183,7 +183,7 @@ export default function BienModal({ bien, onClose }: { bien: Bien; onClose: () =
           {/* Achat-Revente */}
           {ar.plus_value_nette !== undefined && (
             <section>
-              <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--muted)' }}>
+              <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'white' }}>
                 Achat–Revente (flip)
               </h2>
               <div style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
@@ -209,7 +209,7 @@ export default function BienModal({ bien, onClose }: { bien: Bien; onClose: () =
           {/* Rentabilité locative */}
           {(a.loyer_estime || a.rendement_brut) && (
             <section>
-              <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--muted)' }}>
+              <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'white' }}>
                 Rentabilité locative
               </h2>
               <div style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
@@ -232,7 +232,7 @@ export default function BienModal({ bien, onClose }: { bien: Bien; onClose: () =
           {/* Comparables */}
           {comps.length > 0 && (
             <section>
-              <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--muted)' }}>
+              <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'white' }}>
                 Comparables marché ({comps.length})
               </h2>
               <div className="space-y-2">
@@ -241,11 +241,11 @@ export default function BienModal({ bien, onClose }: { bien: Bien; onClose: () =
                        className="rounded-lg p-3 flex items-center justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-white truncate">{c.adresse as string || c.ville as string || '—'}</p>
-                      {c.notes && <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--muted)' }}>{c.notes as string}</p>}
+                      {c.notes && <p className="text-xs mt-0.5 truncate" style={{ color: 'white' }}>{c.notes as string}</p>}
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-sm font-semibold text-white">{fmt(c.prix as number)}</p>
-                      {c.surface && <p className="text-xs" style={{ color: 'var(--muted)' }}>{c.surface as number} m²</p>}
+                      {c.surface && <p className="text-xs" style={{ color: 'white' }}>{c.surface as number} m²</p>}
                     </div>
                   </div>
                 ))}
@@ -282,7 +282,7 @@ export default function BienModal({ bien, onClose }: { bien: Bien; onClose: () =
 
           {/* Historique prix */}
           <section>
-            <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--muted)' }}>
+            <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'white' }}>
               Historique des prix
             </h2>
             <PriceChart bienId={bien.id} />
@@ -291,12 +291,12 @@ export default function BienModal({ bien, onClose }: { bien: Bien; onClose: () =
           {/* Description */}
           {bien.description && (
             <section>
-              <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--muted)' }}>
+              <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'white' }}>
                 Description
               </h2>
               <div style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
                    className="rounded-xl p-4">
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--muted)' }}>{bien.description}</p>
+                <p className="text-sm leading-relaxed" style={{ color: 'white' }}>{bien.description}</p>
               </div>
             </section>
           )}
