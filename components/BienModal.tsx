@@ -241,36 +241,45 @@ export default function BienModal({ bien, onClose }: { bien: Bien; onClose: () =
               <div className="space-y-2">
                 {comparablesReels
                   ? comparablesReels.map((c, i) => (
-                    <div key={i} style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
-                         className="rounded-lg p-3 flex items-center justify-between gap-4">
+                    <a key={i} href={c.url} target="_blank" rel="noopener noreferrer"
+                       className="flex items-center justify-between gap-4 rounded-lg p-3 transition-opacity hover:opacity-75"
+                       style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', textDecoration: 'none' }}>
                       <div className="flex-1 min-w-0">
-                        <a href={c.url} target="_blank" rel="noopener noreferrer"
-                           className="text-sm text-blue-400 hover:text-blue-300 underline truncate block">
-                          {c.adresse || '—'}
-                        </a>
-                        {c.chambres != null && (
-                          <p className="text-xs mt-0.5" style={{ color: 'white' }}>{c.chambres} ch.</p>
-                        )}
+                        <p className="text-sm text-blue-400 truncate">{c.adresse || '—'}</p>
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
+                          {[c.chambres != null && `${c.chambres} ch.`].filter(Boolean).join(' · ')}
+                        </p>
                       </div>
                       <div className="text-right shrink-0">
                         <p className="text-sm font-semibold text-white">{fmt(c.prix)}</p>
-                        {c.surface && <p className="text-xs" style={{ color: 'white' }}>{c.surface} m²</p>}
+                        {c.surface && <p className="text-xs" style={{ color: 'var(--muted)' }}>{c.surface} m²</p>}
                       </div>
-                    </div>
+                    </a>
                   ))
-                  : comps.map((c, i) => (
-                    <div key={i} style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
-                         className="rounded-lg p-3 flex items-center justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-white truncate">{c.adresse as string || c.ville as string || '—'}</p>
-                        {c.notes && <p className="text-xs mt-0.5 truncate" style={{ color: 'white' }}>{c.notes as string}</p>}
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-sm font-semibold text-white">{fmt(c.prix as number)}</p>
-                        {c.surface && <p className="text-xs" style={{ color: 'white' }}>{c.surface as number} m²</p>}
-                      </div>
-                    </div>
-                  ))
+                  : comps.map((c, i) => {
+                    const inner = (
+                      <>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-white truncate">{(c.adresse as string) || (c.ville as string) || '—'}</p>
+                          {c.notes && <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--muted)' }}>{c.notes as string}</p>}
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-semibold text-white">{fmt(c.prix as number)}</p>
+                          {c.surface && <p className="text-xs" style={{ color: 'var(--muted)' }}>{c.surface as number} m²</p>}
+                        </div>
+                      </>
+                    )
+                    return c.url
+                      ? <a key={i} href={c.url as string} target="_blank" rel="noopener noreferrer"
+                           className="flex items-center justify-between gap-4 rounded-lg p-3 transition-opacity hover:opacity-75"
+                           style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', textDecoration: 'none' }}>
+                          {inner}
+                        </a>
+                      : <div key={i} style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
+                             className="rounded-lg p-3 flex items-center justify-between gap-4">
+                          {inner}
+                        </div>
+                  })
                 }
               </div>
             </section>
