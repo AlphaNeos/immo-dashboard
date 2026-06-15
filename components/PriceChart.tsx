@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
 import { supabase, type HistoriquePrix } from '@/lib/supabase'
 
 export default function PriceChart({ bienId }: { bienId: string }) {
@@ -18,7 +19,7 @@ export default function PriceChart({ bienId }: { bienId: string }) {
   if (data.length < 2) {
     return (
       <div style={{
-        backgroundColor: '#FAFAF8', border: '1px solid var(--border)',
+        backgroundColor: 'var(--bg)', border: '1px solid var(--border-soft)',
         borderRadius: 12, padding: '20px',
         fontSize: 12, color: 'var(--muted)', textAlign: 'center',
       }}>
@@ -31,7 +32,6 @@ export default function PriceChart({ bienId }: { bienId: string }) {
   const minP   = Math.min(...prices)
   const maxP   = Math.max(...prices)
   const range  = maxP - minP || 1
-
   const W = 600, H = 110, padX = 14, padY = 16
   const innerW = W - padX * 2
   const innerH = H - padY * 2
@@ -39,8 +39,7 @@ export default function PriceChart({ bienId }: { bienId: string }) {
   const pts = data.map((d, i) => ({
     x: padX + (i / (data.length - 1)) * innerW,
     y: padY + (1 - (d.prix - minP) / range) * innerH,
-    prix: d.prix,
-    date: d.date_check,
+    prix: d.prix, date: d.date_check,
   }))
 
   const polyline = pts.map(p => `${p.x},${p.y}`).join(' ')
@@ -49,17 +48,24 @@ export default function PriceChart({ bienId }: { bienId: string }) {
   const first = prices[0]
   const last  = prices[prices.length - 1]
   const diff  = last - first
-  const color = diff <= 0 ? '#2D6A4F' : '#C1121F'
+  const color = diff <= 0 ? '#1A7A4A' : '#C1121F'
   const gradId = `pg-${bienId.slice(0, 8)}`
+
+  // Total path length approximation for stroke animation
+  const pathLen = pts.reduce((acc, p, i) => {
+    if (i === 0) return 0
+    const prev = pts[i - 1]
+    return acc + Math.hypot(p.x - prev.x, p.y - prev.y)
+  }, 0)
 
   return (
     <div style={{
-      backgroundColor: '#FAFAF8', border: '1px solid var(--border)',
+      backgroundColor: 'var(--bg)', border: '1px solid var(--border-soft)',
       borderRadius: 12, padding: '18px', overflow: 'hidden',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
         <span style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          {data.length} points · {new Date(data[0].date_check).toLocaleDateString('fr-BE')} → {new Date(data[data.length - 1].date_check).toLocaleDateString('fr-BE')}
+          {data.length} points
         </span>
         <span style={{ fontSize: 15, fontWeight: 800, color }}>
           {diff > 0 ? '+' : ''}{diff.toLocaleString('fr-BE')} €
@@ -69,14 +75,24 @@ export default function PriceChart({ bienId }: { bienId: string }) {
       <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
         <defs>
           <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stopColor={color} stopOpacity="0.14" />
+            <stop offset="0%"   stopColor={color} stopOpacity="0.15" />
             <stop offset="100%" stopColor={color} stopOpacity="0" />
           </linearGradient>
         </defs>
         <polygon points={area} fill={`url(#${gradId})`} />
-        <polyline points={polyline} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <motion.polyline
+          points={polyline} fill="none" stroke={color} strokeWidth="2.2"
+          strokeLinecap="round" strokeLinejoin="round"
+          strokeDasharray={pathLen}
+          initial={{ strokeDashoffset: pathLen }}
+          animate={{ strokeDashoffset: 0 }}
+          transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+        />
         {pts.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r="3.5" fill={color} stroke="white" strokeWidth="2" />
+          <motion.circle key={i} cx={p.x} cy={p.y} r="3.5" fill={color} stroke="white" strokeWidth="2"
+            initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.6 + i * 0.05, duration: 0.25 }}
+          />
         ))}
       </svg>
 

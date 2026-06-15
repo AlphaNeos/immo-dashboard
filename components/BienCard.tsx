@@ -1,11 +1,12 @@
 'use client'
 
+import { motion } from 'framer-motion'
 import { type Bien } from '@/lib/supabase'
 
 const PEB_COLORS: Record<string, { bg: string; color: string }> = {
-  A: { bg: '#15803d', color: '#fff' },
-  B: { bg: '#22c55e', color: '#052e16' },
-  C: { bg: '#84cc16', color: '#1a2e05' },
+  A: { bg: '#16a34a', color: '#fff' },
+  B: { bg: '#4ade80', color: '#052e16' },
+  C: { bg: '#a3e635', color: '#1a2e05' },
   D: { bg: '#facc15', color: '#422006' },
   E: { bg: '#fb923c', color: '#1c0a00' },
   F: { bg: '#f87171', color: '#1c0a00' },
@@ -13,7 +14,7 @@ const PEB_COLORS: Record<string, { bg: string; color: string }> = {
 }
 
 const RECO: Record<string, { color: string; bg: string; label: string }> = {
-  ACHETER:  { color: '#2D6A4F', bg: 'rgba(45,106,79,0.1)',   label: 'ACHETER'  },
+  ACHETER:  { color: '#1A7A4A', bg: 'rgba(26,122,74,0.1)',   label: 'ACHETER'  },
   NEGOCIER: { color: '#E07B39', bg: 'rgba(224,123,57,0.1)',  label: 'NÉGOCIER' },
   PASSER:   { color: '#C1121F', bg: 'rgba(193,18,31,0.1)',   label: 'PASSER'   },
   EVITER:   { color: '#C1121F', bg: 'rgba(193,18,31,0.1)',   label: 'PASSER'   },
@@ -24,28 +25,60 @@ function fmt(n: number | null | undefined) {
   return n.toLocaleString('fr-BE') + ' €'
 }
 
-function ScoreCircle({ score }: { score: number }) {
-  const r = 22
+function ScoreRing({ score }: { score: number }) {
+  const r = 20
   const circ = 2 * Math.PI * r
   const pct = score / 10
-  const color = score >= 8 ? '#2D6A4F' : score >= 5 ? '#E07B39' : '#C1121F'
-
+  const color = score >= 8 ? '#1A7A4A' : score >= 5 ? '#E07B39' : '#C1121F'
   return (
-    <div style={{ position: 'relative', width: 56, height: 56, flexShrink: 0 }}>
-      <svg width={56} height={56} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={28} cy={28} r={r} fill="none" stroke="#F0F0EB" strokeWidth={4} />
-        <circle cx={28} cy={28} r={r} fill="none"
-          stroke={color} strokeWidth={4}
-          strokeDasharray={`${circ * pct} ${circ * (1 - pct)}`}
-          strokeLinecap="round" />
+    <div style={{ position: 'relative', width: 52, height: 52, flexShrink: 0 }}>
+      <svg width={52} height={52} style={{ transform: 'rotate(-90deg)' }}>
+        <circle cx={26} cy={26} r={r} fill="none" stroke="var(--border-soft)" strokeWidth={4} />
+        <motion.circle
+          cx={26} cy={26} r={r} fill="none"
+          stroke={color} strokeWidth={4} strokeLinecap="round"
+          strokeDasharray={circ}
+          initial={{ strokeDashoffset: circ }}
+          animate={{ strokeDashoffset: circ * (1 - pct) }}
+          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
+        />
       </svg>
       <div style={{
-        position: 'absolute', inset: 0,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 15, fontWeight: 800, color, letterSpacing: '-0.02em',
+        position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 13, fontWeight: 800, color,
       }}>
         {score}
       </div>
+    </div>
+  )
+}
+
+export function BienCardSkeleton() {
+  const shimmer: React.CSSProperties = {
+    background: 'linear-gradient(90deg, #EBEBF8 25%, #F5F5FF 50%, #EBEBF8 75%)',
+    backgroundSize: '800px 100%',
+    animation: 'skeleton 1.4s ease infinite',
+    borderRadius: 8,
+  }
+  return (
+    <div style={{
+      backgroundColor: 'var(--card)', borderRadius: 16,
+      padding: '20px', boxShadow: '0 2px 16px rgba(26,16,96,0.07)',
+      display: 'flex', flexDirection: 'column', gap: 14,
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <div style={{ ...shimmer, width: 52, height: 52, borderRadius: '50%' }} />
+        <div style={{ ...shimmer, width: 70, height: 24 }} />
+      </div>
+      <div style={{ ...shimmer, height: 16, width: '80%' }} />
+      <div style={{ ...shimmer, height: 12, width: '50%' }} />
+      <div style={{ ...shimmer, height: 24, width: '60%' }} />
+      <div style={{ display: 'flex', gap: 6 }}>
+        {[60, 50, 70].map((w, i) => (
+          <div key={i} style={{ ...shimmer, height: 22, width: w }} />
+        ))}
+      </div>
+      <div style={{ ...shimmer, height: 36, borderRadius: 10 }} />
     </div>
   )
 }
@@ -67,55 +100,36 @@ export default function BienCard({ bien, onClick, index = 0 }: { bien: Bien; onC
   const pressé = jours != null && jours >= 60
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, delay: Math.min(index * 0.04, 0.5), ease: [0.22, 1, 0.36, 1] }}
+      whileHover={{ y: -4, boxShadow: '0 12px 40px rgba(107,78,255,0.18)' }}
       onClick={onClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={e => e.key === 'Enter' && onClick()}
       style={{
         backgroundColor: 'var(--card)',
         borderRadius: 16,
-        boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+        boxShadow: '0 2px 16px rgba(26,16,96,0.07)',
         border: '1.5px solid transparent',
         cursor: 'pointer',
-        transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        animation: 'fadeSlideUp 0.4s ease both',
-        animationDelay: `${Math.min(index * 0.05, 0.6)}s`,
+        transition: 'border-color 0.2s',
       }}
-      onMouseEnter={e => {
-        const el = e.currentTarget as HTMLDivElement
-        el.style.transform = 'translateY(-3px) scale(1.01)'
-        el.style.boxShadow = '0 8px 30px rgba(0,0,0,0.12)'
-        el.style.borderColor = 'var(--gold)'
-      }}
-      onMouseLeave={e => {
-        const el = e.currentTarget as HTMLDivElement
-        el.style.transform = ''
-        el.style.boxShadow = '0 2px 12px rgba(0,0,0,0.06)'
-        el.style.borderColor = 'transparent'
-      }}
+      onHoverStart={e => { (e.target as HTMLElement).closest('[data-card]') }}
     >
-      {/* Top accent strip */}
-      {reco && <div style={{ height: 3, backgroundColor: reco.color }} />}
+      {/* Top accent */}
+      {reco && <div style={{ height: 3, background: `linear-gradient(90deg, ${reco.color}, ${reco.color}88)` }} />}
 
       <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14, flex: 1 }}>
 
-        {/* Row 1: score circle + reco badge + PEB */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-          {score > 0 ? (
-            <ScoreCircle score={score} />
-          ) : (
-            <div style={{
-              width: 56, height: 56, borderRadius: '50%',
-              backgroundColor: '#F0F0EB', flexShrink: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 12, color: 'var(--muted)', fontWeight: 600,
-            }}>—</div>
-          )}
-
+        {/* Score + reco */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          {score > 0
+            ? <ScoreRing score={score} />
+            : <div style={{ width: 52, height: 52, borderRadius: '50%', backgroundColor: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'var(--muted)', flexShrink: 0 }}>—</div>
+          }
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
             {reco && (
               <span style={{
@@ -129,7 +143,7 @@ export default function BienCard({ bien, onClick, index = 0 }: { bien: Bien; onC
             {pebStyle && peb && (
               <span style={{
                 fontSize: 10, fontWeight: 800, padding: '3px 8px', borderRadius: 6,
-                backgroundColor: pebStyle.bg, color: pebStyle.color, letterSpacing: '0.05em',
+                backgroundColor: pebStyle.bg, color: pebStyle.color,
               }}>
                 PEB {peb}
               </span>
@@ -137,13 +151,11 @@ export default function BienCard({ bien, onClick, index = 0 }: { bien: Bien; onC
           </div>
         </div>
 
-        {/* Title + city */}
+        {/* Title */}
         <div>
           <p style={{
-            fontSize: 14, fontWeight: 700, color: 'var(--text)',
-            lineHeight: 1.35, margin: 0,
-            display: '-webkit-box', WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical', overflow: 'hidden',
+            fontSize: 14, fontWeight: 700, color: 'var(--text)', lineHeight: 1.35, margin: 0,
+            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
           }}>
             {bien.titre || (bien.ville ? `Bien — ${bien.ville}` : 'Bien immobilier')}
           </p>
@@ -155,12 +167,9 @@ export default function BienCard({ bien, onClick, index = 0 }: { bien: Bien; onC
         </div>
 
         {/* Prix + plus-value */}
-        <div style={{
-          display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
-          paddingTop: 12, borderTop: '1px solid var(--border)',
-        }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', paddingTop: 12, borderTop: '1px solid var(--border-soft)' }}>
           <div>
-            <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', margin: 0, letterSpacing: '-0.02em' }}>
+            <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)', margin: 0, letterSpacing: '-0.02em' }}>
               {fmt(bien.prix)}
             </p>
             {bien.prix_precedent && (
@@ -172,7 +181,7 @@ export default function BienCard({ bien, onClick, index = 0 }: { bien: Bien; onC
           {pv != null && (
             <div style={{ textAlign: 'right' }}>
               <p style={{ fontSize: 10, color: 'var(--muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>plus-value</p>
-              <p style={{ fontSize: 15, fontWeight: 800, margin: 0, color: pv >= 0 ? '#2D6A4F' : '#C1121F' }}>
+              <p style={{ fontSize: 15, fontWeight: 800, margin: 0, color: pv >= 0 ? '#1A7A4A' : '#C1121F' }}>
                 {pv >= 0 ? '+' : ''}{fmt(pv)}
               </p>
             </div>
@@ -180,50 +189,35 @@ export default function BienCard({ bien, onClick, index = 0 }: { bien: Bien; onC
         </div>
 
         {/* Chips */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
           {bien.surface && <Chip>{bien.surface} m²</Chip>}
           {(bien.chambres ?? bien.nb_chambres) && <Chip>{bien.chambres ?? bien.nb_chambres} ch.</Chip>}
-          {bien.terrain  && <Chip>{bien.terrain} m² terrain</Chip>}
-          {jours != null && (
-            <Chip accent={pressé}>
-              {pressé ? (jours >= 120 ? '🔥' : '⏰') : '⏱'} {jours}j
-            </Chip>
-          )}
-          {bien.source && <Chip>{bien.source}</Chip>}
+          {bien.terrain  && <Chip>{bien.terrain} m²</Chip>}
+          {jours != null && <Chip accent={pressé}>{pressé ? (jours >= 120 ? '🔥' : '⏰') : '⏱'} {jours}j</Chip>}
+          {bien.source   && <Chip>{bien.source}</Chip>}
         </div>
 
         {/* CTA */}
         {bien.url && (
-          <a
+          <motion.a
             href={bien.url}
             target="_blank"
             rel="noopener noreferrer"
             onClick={e => e.stopPropagation()}
+            whileHover={{ backgroundColor: '#5A3DEE' }}
             style={{
               display: 'block', textAlign: 'center', fontSize: 12, fontWeight: 700,
-              padding: '9px', borderRadius: 10, letterSpacing: '0.05em',
-              border: '1.5px solid var(--border)', color: 'var(--muted)',
-              textDecoration: 'none', transition: 'all 0.15s',
-              textTransform: 'uppercase',
-            }}
-            onMouseEnter={e => {
-              const el = e.currentTarget as HTMLAnchorElement
-              el.style.borderColor = 'var(--accent)'
-              el.style.color = 'var(--accent)'
-              el.style.backgroundColor = '#F5F5F0'
-            }}
-            onMouseLeave={e => {
-              const el = e.currentTarget as HTMLAnchorElement
-              el.style.borderColor = 'var(--border)'
-              el.style.color = 'var(--muted)'
-              el.style.backgroundColor = 'transparent'
+              padding: '10px', borderRadius: 10,
+              backgroundColor: 'var(--purple)', color: '#fff',
+              textDecoration: 'none', transition: 'background-color 0.2s',
+              letterSpacing: '0.04em',
             }}
           >
-            Voir l&apos;annonce
-          </a>
+            Voir l&apos;annonce →
+          </motion.a>
         )}
       </div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -231,9 +225,9 @@ function Chip({ children, accent }: { children: React.ReactNode; accent?: boolea
   return (
     <span style={{
       fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 100,
-      backgroundColor: accent ? 'rgba(224,123,57,0.1)' : '#F5F5F0',
+      backgroundColor: accent ? 'rgba(224,123,57,0.1)' : 'var(--bg)',
       color: accent ? '#E07B39' : 'var(--muted)',
-      border: `1px solid ${accent ? 'rgba(224,123,57,0.25)' : 'var(--border)'}`,
+      border: `1px solid ${accent ? 'rgba(224,123,57,0.25)' : 'var(--border-soft)'}`,
     }}>
       {children}
     </span>

@@ -1,17 +1,100 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { supabase, type Bien } from '@/lib/supabase'
-import BienCard from '@/components/BienCard'
+import BienCard, { BienCardSkeleton } from '@/components/BienCard'
 import BienModal from '@/components/BienModal'
 import StatsBar from '@/components/StatsBar'
 import Filters, { FilterState } from '@/components/Filters'
 
+// ── Toast ────────────────────────────────────────────────────────────────────
+function Toast({ msg, onDone }: { msg: string; onDone: () => void }) {
+  useEffect(() => { const t = setTimeout(onDone, 4000); return () => clearTimeout(t) }, [onDone])
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 40, scale: 0.92 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 20, scale: 0.95 }}
+      transition={{ type: 'spring', damping: 22, stiffness: 280 }}
+      style={{
+        position: 'fixed', bottom: 28, right: 28, zIndex: 100,
+        backgroundColor: '#1A1060', color: '#fff',
+        borderRadius: 14, padding: '14px 20px',
+        fontSize: 13, fontWeight: 600,
+        boxShadow: '0 8px 32px rgba(26,16,96,0.35)',
+        display: 'flex', alignItems: 'center', gap: 10,
+        maxWidth: 340,
+      }}
+    >
+      <span style={{ fontSize: 18 }}>🏠</span>
+      {msg}
+    </motion.div>
+  )
+}
+
+// ── Empty state avec countdown ────────────────────────────────────────────────
+function EmptyState() {
+  const [secs, setSecs] = useState(1800)
+
+  useEffect(() => {
+    const id = setInterval(() => setSecs(s => (s > 0 ? s - 1 : 1800)), 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  const mm = String(Math.floor(secs / 60)).padStart(2, '0')
+  const ss = String(secs % 60).padStart(2, '0')
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      style={{ textAlign: 'center', padding: '100px 0' }}
+    >
+      {/* Animated house */}
+      <motion.div
+        animate={{ y: [0, -8, 0] }}
+        transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
+        style={{ fontSize: 64, marginBottom: 24, display: 'inline-block' }}
+      >
+        🏚
+      </motion.div>
+      <p style={{ fontSize: 20, fontWeight: 800, color: 'var(--navy)', marginBottom: 8 }}>
+        Aucun bien trouvé
+      </p>
+      <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 28 }}>
+        L&apos;agent surveille le marché toutes les 30 minutes
+      </p>
+      <div style={{
+        display: 'inline-flex', alignItems: 'center', gap: 10,
+        backgroundColor: 'var(--card)', borderRadius: 12,
+        padding: '12px 24px', boxShadow: '0 2px 16px rgba(26,16,96,0.07)',
+      }}>
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 1.4, ease: 'linear' }}
+          style={{ width: 16, height: 16, border: '2px solid var(--purple)', borderTopColor: 'transparent', borderRadius: '50%' }}
+        />
+        <span style={{ fontSize: 13, color: 'var(--muted)', fontWeight: 600 }}>
+          Prochain scan dans&nbsp;
+        </span>
+        <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--purple)', fontVariantNumeric: 'tabular-nums' }}>
+          {mm}:{ss}
+        </span>
+      </div>
+    </motion.div>
+  )
+}
+
+// ── Page principale ───────────────────────────────────────────────────────────
 export default function HomePage() {
   const [biens, setBiens]       = useState<Bien[]>([])
   const [loading, setLoading]   = useState(true)
   const [selected, setSelected] = useState<Bien | null>(null)
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
+  const [toast, setToast]       = useState<string | null>(null)
+  const prevCount               = useRef(0)
   const [filters, setFilters]   = useState<FilterState>({
     recommandation: 'tous',
     commune: '',
@@ -38,7 +121,13 @@ export default function HomePage() {
 
     const { data, error } = await q
     if (!error && data) {
-      setBiens(data as Bien[])
+      const newBiens = data as Bien[]
+      if (prevCount.current > 0 && newBiens.length > prevCount.current) {
+        const diff = newBiens.length - prevCount.current
+        setToast(`${diff} nouveau${diff > 1 ? 'x' : ''} bien${diff > 1 ? 's' : ''} détecté${diff > 1 ? 's' : ''} !`)
+      }
+      prevCount.current = newBiens.length
+      setBiens(newBiens)
       setLastUpdate(new Date())
     }
     setLoading(false)
@@ -67,11 +156,11 @@ export default function HomePage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)' }}>
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      {/* ── Header ─────────────────────────────────────────────────────── */}
       <header style={{
-        backgroundColor: 'rgba(245,245,240,0.92)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
+        backgroundColor: 'rgba(240,240,250,0.9)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
         borderBottom: '1px solid var(--border)',
         position: 'sticky', top: 0, zIndex: 40,
       }}>
@@ -79,27 +168,36 @@ export default function HomePage() {
           maxWidth: 1400, margin: '0 auto', padding: '0 28px', height: 64,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          <div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em', lineHeight: 1 }}>
-              IMMO PRO
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2, letterSpacing: '0.04em' }}>
-              Wallonie complète · max 120 000€
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 10,
+              background: 'linear-gradient(135deg, #6B4EFF 0%, #9B7EFF 100%)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 16, fontWeight: 800, color: '#fff', flexShrink: 0,
+            }}>I</div>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+                IMMO PRO
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1, letterSpacing: '0.03em' }}>
+                Wallonie complète · max 120 000€
+              </div>
             </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
             {lastUpdate && (
               <span style={{ fontSize: 12, color: 'var(--muted)' }}>
-                Mis à jour à {fmtTime(lastUpdate)}
+                Màj {fmtTime(lastUpdate)}
               </span>
             )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{
-                width: 7, height: 7, borderRadius: '50%', backgroundColor: '#2D6A4F',
-                animation: 'pulse 2s infinite',
-              }} />
-              <span style={{ fontSize: 11, color: '#2D6A4F', fontWeight: 600, letterSpacing: '0.04em' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <motion.div
+                animate={{ scale: [1, 1.3, 1], opacity: [1, 0.5, 1] }}
+                transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
+                style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#1A7A4A' }}
+              />
+              <span style={{ fontSize: 11, color: '#1A7A4A', fontWeight: 700, letterSpacing: '0.05em' }}>
                 TEMPS RÉEL
               </span>
             </div>
@@ -107,51 +205,45 @@ export default function HomePage() {
         </div>
       </header>
 
-      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '32px 28px 80px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '32px 28px 80px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-        {/* ── Stats ────────────────────────────────────────────────────────── */}
         <StatsBar stats={stats} />
-
-        {/* ── Filtres ──────────────────────────────────────────────────────── */}
         <Filters filters={filters} onChange={setFilters} />
 
-        {/* ── Grille ───────────────────────────────────────────────────────── */}
+        {/* Grille */}
         {loading ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '100px 0', gap: 14 }}>
-            <div style={{
-              width: 30, height: 30,
-              border: '2px solid var(--border)',
-              borderTopColor: 'var(--accent)',
-              borderRadius: '50%',
-              animation: 'spin 0.8s linear infinite',
-            }} />
-            <span style={{ color: 'var(--muted)', fontSize: 14 }}>Chargement des biens…</span>
+          <div>
+            <div style={{ height: 20, marginBottom: 16 }} />
+            <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
+              {Array.from({ length: 9 }).map((_, i) => <BienCardSkeleton key={i} />)}
+            </div>
           </div>
         ) : biens.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '100px 0' }}>
-            <div style={{ fontSize: 52, marginBottom: 20 }}>🏚</div>
-            <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>Aucun bien trouvé</p>
-            <p style={{ fontSize: 13, color: 'var(--muted)' }}>L&apos;agent surveille le marché toutes les 30 minutes</p>
-          </div>
+          <EmptyState />
         ) : (
-          <div>
-            <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 18, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            <p style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               {biens.length} bien{biens.length > 1 ? 's' : ''} trouvé{biens.length > 1 ? 's' : ''}
             </p>
-            <div style={{
-              display: 'grid',
-              gap: 16,
-              gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            }}>
+            <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
               {biens.map((b, i) => (
                 <BienCard key={b.id} bien={b} onClick={() => setSelected(b)} index={i} />
               ))}
             </div>
-          </div>
+          </motion.div>
         )}
       </div>
 
       {selected && <BienModal bien={selected} onClose={() => setSelected(null)} />}
+
+      {/* Toast */}
+      <AnimatePresence>
+        {toast && <Toast key={toast} msg={toast} onDone={() => setToast(null)} />}
+      </AnimatePresence>
     </div>
   )
 }
