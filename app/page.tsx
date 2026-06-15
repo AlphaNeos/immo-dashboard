@@ -8,14 +8,14 @@ import StatsBar from '@/components/StatsBar'
 import Filters, { FilterState } from '@/components/Filters'
 
 export default function HomePage() {
-  const [biens, setBiens]           = useState<Bien[]>([])
-  const [loading, setLoading]       = useState(true)
-  const [selected, setSelected]     = useState<Bien | null>(null)
-  const [filters, setFilters]       = useState<FilterState>({
+  const [biens, setBiens]       = useState<Bien[]>([])
+  const [loading, setLoading]   = useState(true)
+  const [selected, setSelected] = useState<Bien | null>(null)
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
+  const [filters, setFilters]   = useState<FilterState>({
     recommandation: 'tous',
-    source: 'tous',
     commune: '',
-    prixMax: 150000,
+    prixMax: 120000,
     scoreMin: 0,
   })
 
@@ -25,35 +25,31 @@ export default function HomePage() {
       .select('*')
       .in('statut', ['notifie', 'analyse', 'nouveau'])
       .order('date_detection', { ascending: false })
-      .limit(200)
+      .limit(300)
 
     if (filters.recommandation !== 'tous')
       q = q.eq('recommandation', filters.recommandation)
-    if (filters.source !== 'tous')
-      q = q.contains('sources_vues', [filters.source])
     if (filters.commune)
       q = q.ilike('ville', `%${filters.commune}%`)
-    if (filters.prixMax < 150000)
+    if (filters.prixMax < 120000)
       q = q.lte('prix', filters.prixMax)
     if (filters.scoreMin > 0)
       q = q.gte('score_ia', filters.scoreMin)
 
     const { data, error } = await q
-    if (!error && data) setBiens(data as Bien[])
+    if (!error && data) {
+      setBiens(data as Bien[])
+      setLastUpdate(new Date())
+    }
     setLoading(false)
   }, [filters])
 
   useEffect(() => {
     fetchBiens()
-
-    // Temps réel — écoute les nouvelles insertions / mises à jour
     const channel = supabase
       .channel('biens-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'biens' },
-        () => fetchBiens()
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'biens' }, () => fetchBiens())
       .subscribe()
-
     return () => { supabase.removeChannel(channel) }
   }, [fetchBiens])
 
@@ -61,65 +57,114 @@ export default function HomePage() {
     total:    biens.length,
     acheter:  biens.filter(b => b.recommandation === 'ACHETER').length,
     negocier: biens.filter(b => b.recommandation === 'NEGOCIER').length,
-    eviter:   biens.filter(b => b.recommandation === 'EVITER').length,
+    passer:   biens.filter(b => b.recommandation === 'PASSER' || b.recommandation === 'EVITER').length,
     analyses: biens.filter(b => b.score_ia && b.score_ia > 0).length,
   }
 
+  const fmtTime = (d: Date) =>
+    d.toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' })
+
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--bg)' }}>
-      {/* ── Header ──────────────────────────────────────────────────────── */}
-      <header style={{ backgroundColor: 'var(--surface)', borderBottom: '1px solid var(--border)' }}
-              className="sticky top-0 z-30 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm">I</div>
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg)' }}>
+
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <header style={{
+        backgroundColor: 'rgba(13, 15, 20, 0.85)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        borderBottom: '1px solid var(--border)',
+        position: 'sticky', top: 0, zIndex: 40,
+      }}>
+        <div style={{ maxWidth: 1400, margin: '0 auto', padding: '0 24px', height: 60,
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {/* Logo */}
+            <div style={{
+              width: 34, height: 34, borderRadius: 9,
+              background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 15, fontWeight: 700, color: 'white', flexShrink: 0,
+            }}>I</div>
             <div>
-              <h1 className="text-lg font-bold text-white leading-tight">Immo Agent Pro</h1>
-              <p className="text-xs" style={{ color: 'var(--muted)' }}>Hainaut + Namur · max 150 000€</p>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>
+                Immo Agent Pro
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>
+                Wallonie complète · max 120 000€
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-            <span className="text-xs" style={{ color: 'var(--muted)' }}>Temps réel</span>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            {lastUpdate && (
+              <span style={{ fontSize: 11, color: 'var(--muted)' }}>
+                Màj {fmtTime(lastUpdate)}
+              </span>
+            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{
+                width: 7, height: 7, borderRadius: '50%', backgroundColor: 'var(--green)',
+                boxShadow: '0 0 6px #22C55E',
+                animation: 'pulse 2s infinite',
+              }} />
+              <span style={{ fontSize: 11, color: 'var(--green)', fontWeight: 500 }}>Temps réel</span>
+            </div>
           </div>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
-        {/* ── Stats ───────────────────────────────────────────────────────── */}
+      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '28px 24px 60px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+        {/* ── Stats ────────────────────────────────────────────────────────── */}
         <StatsBar stats={stats} />
 
-        {/* ── Filtres ─────────────────────────────────────────────────────── */}
+        {/* ── Filtres ──────────────────────────────────────────────────────── */}
         <Filters filters={filters} onChange={setFilters} />
 
-        {/* ── Grille ──────────────────────────────────────────────────────── */}
+        {/* ── Grille ───────────────────────────────────────────────────────── */}
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            <span className="ml-3" style={{ color: 'var(--muted)' }}>Chargement...</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 0', gap: 12 }}>
+            <div style={{
+              width: 28, height: 28,
+              border: '2px solid var(--indigo)',
+              borderTopColor: 'transparent',
+              borderRadius: '50%',
+              animation: 'spin 0.7s linear infinite',
+            }} />
+            <span style={{ color: 'var(--muted)', fontSize: 14 }}>Chargement des biens…</span>
           </div>
         ) : biens.length === 0 ? (
-          <div className="text-center py-20" style={{ color: 'var(--muted)' }}>
-            <p className="text-4xl mb-3">🏚️</p>
-            <p className="text-lg font-medium text-white">Aucun bien trouvé</p>
-            <p className="text-sm mt-1">L&apos;agent surveille le marché toutes les 30 minutes</p>
+          <div style={{ textAlign: 'center', padding: '80px 0' }}>
+            <div style={{ fontSize: 48, marginBottom: 16, filter: 'grayscale(1)' }}>🏚</div>
+            <p style={{ fontSize: 17, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>Aucun bien trouvé</p>
+            <p style={{ fontSize: 13, color: 'var(--muted)' }}>L&apos;agent surveille le marché toutes les 30 minutes</p>
           </div>
         ) : (
-          <>
-            <p className="text-sm" style={{ color: 'var(--muted)' }}>
-              {biens.length} bien{biens.length > 1 ? 's' : ''} · cliquez pour le détail
+          <div>
+            <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 14 }}>
+              {biens.length} bien{biens.length > 1 ? 's' : ''} · cliquez pour le détail complet
             </p>
-            <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+            <div style={{
+              display: 'grid',
+              gap: 14,
+              gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+            }}>
               {biens.map(b => (
                 <BienCard key={b.id} bien={b} onClick={() => setSelected(b)} />
               ))}
             </div>
-          </>
+          </div>
         )}
       </div>
 
-      {/* ── Modal détail ────────────────────────────────────────────────── */}
+      {/* ── Modal ────────────────────────────────────────────────────────────── */}
       {selected && <BienModal bien={selected} onClose={() => setSelected(null)} />}
+
+      <style>{`
+        @keyframes spin  { to { transform: rotate(360deg); } }
+        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
+      `}</style>
     </div>
   )
 }
