@@ -10,10 +10,10 @@ export type FilterState = {
 type Props = { filters: FilterState; onChange: (f: FilterState) => void }
 
 const RECOS = [
-  { value: 'tous',     label: 'Toutes',    color: 'var(--muted)' },
-  { value: 'ACHETER',  label: 'ACHETER',   color: '#22C55E' },
-  { value: 'NEGOCIER', label: 'NÉGOCIER',  color: '#F59E0B' },
-  { value: 'PASSER',   label: 'PASSER',    color: '#EF4444' },
+  { value: 'tous',     label: 'Tous',      color: '#1A1A1A' },
+  { value: 'ACHETER',  label: 'ACHETER',   color: '#2D6A4F' },
+  { value: 'NEGOCIER', label: 'NÉGOCIER',  color: '#E07B39' },
+  { value: 'PASSER',   label: 'PASSER',    color: '#C1121F' },
 ]
 
 export default function Filters({ filters, onChange }: Props) {
@@ -22,32 +22,21 @@ export default function Filters({ filters, onChange }: Props) {
 
   const reset = () => onChange({ recommandation: 'tous', commune: '', prixMax: 120000, scoreMin: 0 })
 
-  const inputStyle: React.CSSProperties = {
-    backgroundColor: 'var(--surface-2)',
-    border: '1px solid var(--border)',
-    borderRadius: 8,
-    color: 'var(--text)',
-    fontSize: 13,
-    padding: '8px 12px',
-    outline: 'none',
-    width: '100%',
-  }
-
   return (
     <div style={{
-      backgroundColor: 'var(--surface)',
-      border: '1px solid var(--border)',
-      borderRadius: 14,
-      padding: '16px 20px',
+      backgroundColor: 'var(--card)',
+      borderRadius: 16,
+      padding: '18px 24px',
+      boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
       display: 'flex',
       flexWrap: 'wrap',
-      gap: 20,
+      gap: 24,
       alignItems: 'flex-end',
     }}>
 
-      {/* Recommandation — pill buttons */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+      {/* Recommandation */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
           Recommandation
         </label>
         <div style={{ display: 'flex', gap: 6 }}>
@@ -55,12 +44,13 @@ export default function Filters({ filters, onChange }: Props) {
             const active = filters.recommandation === r.value
             return (
               <button key={r.value} onClick={() => set('recommandation', r.value)} style={{
-                fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 20,
-                border: `1px solid ${active ? r.color : 'var(--border)'}`,
-                backgroundColor: active ? `${r.color}18` : 'transparent',
-                color: active ? r.color : 'var(--muted)',
+                fontSize: 11, fontWeight: 700, padding: '6px 14px', borderRadius: 100,
+                border: `1.5px solid ${active ? r.color : 'var(--border)'}`,
+                backgroundColor: active ? r.color : 'transparent',
+                color: active ? '#fff' : 'var(--muted)',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
+                letterSpacing: '0.04em',
               }}>
                 {r.label}
               </button>
@@ -70,67 +60,62 @@ export default function Filters({ filters, onChange }: Props) {
       </div>
 
       {/* Commune */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 140 }}>
-        <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 160 }}>
+        <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
           Commune
         </label>
         <input
-          style={inputStyle}
+          style={{
+            backgroundColor: '#F5F5F0', border: '1.5px solid var(--border)',
+            borderRadius: 10, color: 'var(--text)', fontSize: 13,
+            padding: '8px 12px', outline: 'none', width: '100%',
+            transition: 'border-color 0.15s',
+          }}
           placeholder="ex: Mons, Liège…"
           value={filters.commune}
           onChange={e => set('commune', e.target.value)}
-          onFocus={e => { (e.target as HTMLInputElement).style.borderColor = 'var(--indigo)' }}
+          onFocus={e => { (e.target as HTMLInputElement).style.borderColor = 'var(--accent)' }}
           onBlur={e => { (e.target as HTMLInputElement).style.borderColor = 'var(--border)' }}
         />
       </div>
 
       {/* Prix max */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
           Prix max
-          <span style={{ color: 'var(--text)', fontWeight: 700, marginLeft: 6 }}>
-            {filters.prixMax.toLocaleString('fr-BE')}€
+          <span style={{ color: 'var(--text)', fontWeight: 800, marginLeft: 8 }}>
+            {filters.prixMax.toLocaleString('fr-BE')} €
           </span>
         </label>
         <input type="range" min={20000} max={120000} step={5000}
                value={filters.prixMax}
                onChange={e => set('prixMax', Number(e.target.value))}
-               style={{
-                 width: 160, height: 3, borderRadius: 2, outline: 'none',
-                 background: `linear-gradient(to right, var(--indigo) ${((filters.prixMax - 20000) / 100000) * 100}%, var(--border) 0%)`,
-                 WebkitAppearance: 'none', appearance: 'none', cursor: 'pointer',
-               }} />
+               style={{ width: 160 }} />
       </div>
 
-      {/* Score IA min */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          Score IA min
-          <span style={{ color: 'var(--text)', fontWeight: 700, marginLeft: 6 }}>
+      {/* Score min */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+          Score min
+          <span style={{ color: 'var(--text)', fontWeight: 800, marginLeft: 8 }}>
             {filters.scoreMin}/10
           </span>
         </label>
         <input type="range" min={0} max={10} step={1}
                value={filters.scoreMin}
                onChange={e => set('scoreMin', Number(e.target.value))}
-               style={{
-                 width: 120, height: 3, borderRadius: 2, outline: 'none',
-                 background: `linear-gradient(to right, #8B5CF6 ${filters.scoreMin * 10}%, var(--border) 0%)`,
-                 WebkitAppearance: 'none', appearance: 'none', cursor: 'pointer',
-               }} />
+               style={{ width: 120 }} />
       </div>
 
-      {/* Reset */}
       <button onClick={reset} style={{
-        fontSize: 12, fontWeight: 500, padding: '8px 16px',
-        borderRadius: 8, cursor: 'pointer',
-        border: '1px solid var(--border)',
-        backgroundColor: 'transparent',
-        color: 'var(--muted)',
-        marginLeft: 'auto',
+        fontSize: 11, fontWeight: 700, padding: '8px 16px', borderRadius: 100,
+        cursor: 'pointer', border: '1.5px solid var(--border)',
+        backgroundColor: 'transparent', color: 'var(--muted)',
+        marginLeft: 'auto', letterSpacing: '0.04em', textTransform: 'uppercase',
+        transition: 'all 0.15s',
       }}
-        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border-hover)' }}
-        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--muted)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)' }}
+        onMouseEnter={e => { const el = e.currentTarget; el.style.borderColor = 'var(--accent)'; el.style.color = 'var(--text)' }}
+        onMouseLeave={e => { const el = e.currentTarget; el.style.borderColor = 'var(--border)'; el.style.color = 'var(--muted)' }}
       >
         Réinitialiser
       </button>

@@ -69,52 +69,45 @@ export default function HomePage() {
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header style={{
-        backgroundColor: 'rgba(13, 15, 20, 0.85)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
+        backgroundColor: 'rgba(245,245,240,0.92)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
         borderBottom: '1px solid var(--border)',
         position: 'sticky', top: 0, zIndex: 40,
       }}>
-        <div style={{ maxWidth: 1400, margin: '0 auto', padding: '0 24px', height: 60,
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {/* Logo */}
-            <div style={{
-              width: 34, height: 34, borderRadius: 9,
-              background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 15, fontWeight: 700, color: 'white', flexShrink: 0,
-            }}>I</div>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>
-                Immo Agent Pro
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>
-                Wallonie complète · max 120 000€
-              </div>
+        <div style={{
+          maxWidth: 1400, margin: '0 auto', padding: '0 28px', height: 64,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em', lineHeight: 1 }}>
+              IMMO PRO
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2, letterSpacing: '0.04em' }}>
+              Wallonie complète · max 120 000€
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
             {lastUpdate && (
-              <span style={{ fontSize: 11, color: 'var(--muted)' }}>
-                Màj {fmtTime(lastUpdate)}
+              <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+                Mis à jour à {fmtTime(lastUpdate)}
               </span>
             )}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <div style={{
-                width: 7, height: 7, borderRadius: '50%', backgroundColor: 'var(--green)',
-                boxShadow: '0 0 6px #22C55E',
+                width: 7, height: 7, borderRadius: '50%', backgroundColor: '#2D6A4F',
                 animation: 'pulse 2s infinite',
               }} />
-              <span style={{ fontSize: 11, color: 'var(--green)', fontWeight: 500 }}>Temps réel</span>
+              <span style={{ fontSize: 11, color: '#2D6A4F', fontWeight: 600, letterSpacing: '0.04em' }}>
+                TEMPS RÉEL
+              </span>
             </div>
           </div>
         </div>
       </header>
 
-      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '28px 24px 60px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '32px 28px 80px', display: 'flex', flexDirection: 'column', gap: 24 }}>
 
         {/* ── Stats ────────────────────────────────────────────────────────── */}
         <StatsBar stats={stats} />
@@ -124,47 +117,41 @@ export default function HomePage() {
 
         {/* ── Grille ───────────────────────────────────────────────────────── */}
         {loading ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 0', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '100px 0', gap: 14 }}>
             <div style={{
-              width: 28, height: 28,
-              border: '2px solid var(--indigo)',
-              borderTopColor: 'transparent',
+              width: 30, height: 30,
+              border: '2px solid var(--border)',
+              borderTopColor: 'var(--accent)',
               borderRadius: '50%',
-              animation: 'spin 0.7s linear infinite',
+              animation: 'spin 0.8s linear infinite',
             }} />
             <span style={{ color: 'var(--muted)', fontSize: 14 }}>Chargement des biens…</span>
           </div>
         ) : biens.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '80px 0' }}>
-            <div style={{ fontSize: 48, marginBottom: 16, filter: 'grayscale(1)' }}>🏚</div>
-            <p style={{ fontSize: 17, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>Aucun bien trouvé</p>
+          <div style={{ textAlign: 'center', padding: '100px 0' }}>
+            <div style={{ fontSize: 52, marginBottom: 20 }}>🏚</div>
+            <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>Aucun bien trouvé</p>
             <p style={{ fontSize: 13, color: 'var(--muted)' }}>L&apos;agent surveille le marché toutes les 30 minutes</p>
           </div>
         ) : (
           <div>
-            <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 14 }}>
-              {biens.length} bien{biens.length > 1 ? 's' : ''} · cliquez pour le détail complet
+            <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 18, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+              {biens.length} bien{biens.length > 1 ? 's' : ''} trouvé{biens.length > 1 ? 's' : ''}
             </p>
             <div style={{
               display: 'grid',
-              gap: 14,
-              gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+              gap: 16,
+              gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
             }}>
-              {biens.map(b => (
-                <BienCard key={b.id} bien={b} onClick={() => setSelected(b)} />
+              {biens.map((b, i) => (
+                <BienCard key={b.id} bien={b} onClick={() => setSelected(b)} index={i} />
               ))}
             </div>
           </div>
         )}
       </div>
 
-      {/* ── Modal ────────────────────────────────────────────────────────────── */}
       {selected && <BienModal bien={selected} onClose={() => setSelected(null)} />}
-
-      <style>{`
-        @keyframes spin  { to { transform: rotate(360deg); } }
-        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
-      `}</style>
     </div>
   )
 }
