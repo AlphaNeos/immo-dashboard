@@ -106,9 +106,8 @@ export default function HomePage() {
     let q = supabase
       .from('biens')
       .select('*')
-      .in('statut', ['notifie', 'analyse', 'nouveau'])
       .order('date_detection', { ascending: false })
-      .limit(300)
+      .limit(500)
 
     if (filters.recommandation !== 'tous')
       q = q.eq('recommandation', filters.recommandation)
