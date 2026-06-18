@@ -1,235 +1,192 @@
 'use client'
-
 import { motion } from 'framer-motion'
-import { type Bien } from '@/lib/supabase'
+import type { Bien } from '@/lib/supabase'
 
-const PEB_COLORS: Record<string, { bg: string; color: string }> = {
-  A: { bg: '#16a34a', color: '#fff' },
-  B: { bg: '#4ade80', color: '#052e16' },
-  C: { bg: '#a3e635', color: '#1a2e05' },
-  D: { bg: '#facc15', color: '#422006' },
-  E: { bg: '#fb923c', color: '#1c0a00' },
-  F: { bg: '#f87171', color: '#1c0a00' },
-  G: { bg: '#C1121F', color: '#fff' },
+const RECO_COLOR: Record<string, string> = {
+  ACHETER:  'var(--green)',
+  NEGOCIER: 'var(--amber)',
+  PASSER:   'var(--red)',
+  EVITER:   'var(--red)',
 }
-
-const RECO: Record<string, { color: string; bg: string; label: string }> = {
-  ACHETER:  { color: '#1A7A4A', bg: 'rgba(26,122,74,0.1)',   label: 'ACHETER'  },
-  NEGOCIER: { color: '#E07B39', bg: 'rgba(224,123,57,0.1)',  label: 'NÉGOCIER' },
-  PASSER:   { color: '#C1121F', bg: 'rgba(193,18,31,0.1)',   label: 'PASSER'   },
-  EVITER:   { color: '#C1121F', bg: 'rgba(193,18,31,0.1)',   label: 'PASSER'   },
+const RECO_BG: Record<string, string> = {
+  ACHETER:  'rgba(34,197,94,0.15)',
+  NEGOCIER: 'rgba(249,115,22,0.15)',
+  PASSER:   'rgba(239,68,68,0.15)',
+  EVITER:   'rgba(239,68,68,0.15)',
 }
-
-function fmt(n: number | null | undefined) {
-  if (n == null) return '—'
-  return n.toLocaleString('fr-BE') + ' €'
+const RECO_LABEL: Record<string, string> = {
+  ACHETER:  'ACHETER',
+  NEGOCIER: 'NÉGOCIER',
+  PASSER:   'PASSER',
+  EVITER:   'ÉVITER',
 }
 
 function ScoreRing({ score }: { score: number }) {
-  const r = 20
-  const circ = 2 * Math.PI * r
-  const pct = score / 10
-  const color = score >= 8 ? '#1A7A4A' : score >= 5 ? '#E07B39' : '#C1121F'
+  const r = 20, circ = 2 * Math.PI * r
+  const filled = circ * Math.min(score, 100) / 100
   return (
-    <div style={{ position: 'relative', width: 52, height: 52, flexShrink: 0 }}>
-      <svg width={52} height={52} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={26} cy={26} r={r} fill="none" stroke="var(--border-soft)" strokeWidth={4} />
+    <div style={{ width: 52, height: 52, position: 'relative', flexShrink: 0 }}>
+      <svg width="52" height="52" viewBox="0 0 52 52" style={{ transform: 'rotate(-90deg)' }}>
+        <circle cx="26" cy="26" r={r} fill="none" stroke="rgba(139,92,246,0.15)" strokeWidth="4" />
         <motion.circle
-          cx={26} cy={26} r={r} fill="none"
-          stroke={color} strokeWidth={4} strokeLinecap="round"
-          strokeDasharray={circ}
-          initial={{ strokeDashoffset: circ }}
-          animate={{ strokeDashoffset: circ * (1 - pct) }}
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
+          cx="26" cy="26" r={r}
+          fill="none" stroke="var(--violet)" strokeWidth="4"
+          strokeLinecap="round"
+          strokeDasharray={`${filled} ${circ - filled}`}
+          initial={{ strokeDasharray: `0 ${circ}` }}
+          animate={{ strokeDasharray: `${filled} ${circ - filled}` }}
+          transition={{ duration: 1, ease: 'easeOut' }}
         />
       </svg>
       <div style={{
-        position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 13, fontWeight: 800, color,
-      }}>
-        {score}
-      </div>
+        position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+        fontSize: 12, fontWeight: 800, color: 'var(--violet)',
+      }}>{score}</div>
     </div>
   )
 }
 
 export function BienCardSkeleton() {
-  const shimmer: React.CSSProperties = {
-    background: 'linear-gradient(90deg, #EBEBF8 25%, #F5F5FF 50%, #EBEBF8 75%)',
-    backgroundSize: '800px 100%',
-    animation: 'skeleton 1.4s ease infinite',
-    borderRadius: 8,
-  }
   return (
-    <div style={{
-      backgroundColor: 'var(--card)', borderRadius: 16,
-      padding: '20px', boxShadow: '0 2px 16px rgba(26,16,96,0.07)',
-      display: 'flex', flexDirection: 'column', gap: 14,
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-        <div style={{ ...shimmer, width: 52, height: 52, borderRadius: '50%' }} />
-        <div style={{ ...shimmer, width: 70, height: 24 }} />
+    <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden' }}>
+      <div style={{ height: 4, background: 'var(--border)' }} />
+      <div style={{ height: 160, background: 'var(--card2)' }} className="skeleton" />
+      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="skeleton" style={{ height: 22, width: '60%' }} />
+        <div className="skeleton" style={{ height: 14, width: '40%' }} />
+        <div style={{ display: 'flex', gap: 8 }}>
+          <div className="skeleton" style={{ height: 28, width: 56 }} />
+          <div className="skeleton" style={{ height: 28, width: 56 }} />
+        </div>
+        <div className="skeleton" style={{ height: 36 }} />
       </div>
-      <div style={{ ...shimmer, height: 16, width: '80%' }} />
-      <div style={{ ...shimmer, height: 12, width: '50%' }} />
-      <div style={{ ...shimmer, height: 24, width: '60%' }} />
-      <div style={{ display: 'flex', gap: 6 }}>
-        {[60, 50, 70].map((w, i) => (
-          <div key={i} style={{ ...shimmer, height: 22, width: w }} />
-        ))}
-      </div>
-      <div style={{ ...shimmer, height: 36, borderRadius: 10 }} />
     </div>
   )
 }
 
-export default function BienCard({ bien, onClick, index = 0 }: { bien: Bien; onClick: () => void; index?: number }) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const a: any = bien.analyse_ia || {}
-  const ar = a.achat_revente || {}
-  const pv: number | undefined = ar.plus_value_nette ?? bien.plus_value_estimee
-
-  const score = bien.score_ia ?? 0
-  const recoKey = bien.recommandation || ''
-  const reco = RECO[recoKey]
-
-  const peb = (bien.peb ?? '').toUpperCase().slice(0, 1)
-  const pebStyle = PEB_COLORS[peb]
-
-  const jours = bien.jours_en_ligne
-  const pressé = jours != null && jours >= 60
+export default function BienCard({ bien, onClick, index }: { bien: Bien; onClick: () => void; index: number }) {
+  const reco = bien.recommandation || 'PASSER'
+  const accentColor = RECO_COLOR[reco] || 'var(--muted2)'
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, delay: Math.min(index * 0.04, 0.5), ease: [0.22, 1, 0.36, 1] }}
-      whileHover={{ y: -4, boxShadow: '0 12px 40px rgba(107,78,255,0.18)' }}
-      onClick={onClick}
-      style={{
-        backgroundColor: 'var(--card)',
-        borderRadius: 16,
-        boxShadow: '0 2px 16px rgba(26,16,96,0.07)',
-        border: '1.5px solid transparent',
-        cursor: 'pointer',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        transition: 'border-color 0.2s',
+      transition={{ delay: Math.min(index * 0.05, 0.4), duration: 0.35, ease: 'easeOut' }}
+      whileHover={{
+        y: -4,
+        boxShadow: '0 20px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(139,92,246,0.3)',
+        borderColor: 'rgba(139,92,246,0.4)',
       }}
-      onHoverStart={e => { (e.target as HTMLElement).closest('[data-card]') }}
+      style={{
+        background: 'var(--card)',
+        border: '1px solid var(--border)',
+        borderRadius: 20,
+        overflow: 'hidden',
+        cursor: 'pointer',
+      }}
+      onClick={onClick}
     >
-      {/* Top accent */}
-      {reco && <div style={{ height: 3, background: `linear-gradient(90deg, ${reco.color}, ${reco.color}88)` }} />}
+      {/* Accent bar */}
+      <div style={{
+        height: 4,
+        background: `linear-gradient(90deg, ${accentColor}, ${accentColor}88)`,
+      }} />
 
-      <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14, flex: 1 }}>
+      {/* Photo zone */}
+      <div style={{ height: 160, background: 'var(--card2)', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--border)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4 }}>
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
 
-        {/* Score + reco */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-          {score > 0
-            ? <ScoreRing score={score} />
-            : <div style={{ width: 52, height: 52, borderRadius: '50%', backgroundColor: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'var(--muted)', flexShrink: 0 }}>—</div>
-          }
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
-            {reco && (
-              <span style={{
-                fontSize: 10, fontWeight: 800, letterSpacing: '0.08em',
-                padding: '4px 10px', borderRadius: 100,
-                color: reco.color, backgroundColor: reco.bg,
-              }}>
-                {reco.label}
-              </span>
-            )}
-            {pebStyle && peb && (
-              <span style={{
-                fontSize: 10, fontWeight: 800, padding: '3px 8px', borderRadius: 6,
-                backgroundColor: pebStyle.bg, color: pebStyle.color,
-              }}>
-                PEB {peb}
-              </span>
-            )}
-          </div>
+        {/* Reco badge */}
+        <div style={{
+          position: 'absolute', top: 10, left: 10,
+          background: RECO_BG[reco] || 'rgba(100,116,139,0.15)',
+          border: `1px solid ${accentColor}44`,
+          color: accentColor,
+          borderRadius: 8, padding: '4px 10px',
+          fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
+        }}>
+          {RECO_LABEL[reco] || reco}
         </div>
 
-        {/* Title */}
-        <div>
-          <p style={{
-            fontSize: 14, fontWeight: 700, color: 'var(--text)', lineHeight: 1.35, margin: 0,
-            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+        {/* Photo count */}
+        {(bien.nb_photos ?? 0) > 0 && (
+          <div style={{
+            position: 'absolute', bottom: 10, right: 10,
+            background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',
+            borderRadius: 8, padding: '4px 9px',
+            fontSize: 11, fontWeight: 600, color: '#fff',
+            display: 'flex', alignItems: 'center', gap: 5,
           }}>
-            {bien.titre || (bien.ville ? `Bien — ${bien.ville}` : 'Bien immobilier')}
-          </p>
-          {bien.ville && (
-            <p style={{ fontSize: 12, color: 'var(--muted)', margin: '4px 0 0' }}>
-              {bien.ville}{bien.code_postal ? ` · ${bien.code_postal}` : ''}
-            </p>
-          )}
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            {bien.nb_photos}
+          </div>
+        )}
+      </div>
+
+      {/* Body */}
+      <div style={{ padding: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--gold)', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
+              {bien.prix ? bien.prix.toLocaleString('fr-BE') + ' €' : '— €'}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {bien.titre || 'Sans titre'}
+            </div>
+          </div>
+          {(bien.score_ia ?? 0) > 0 && <ScoreRing score={bien.score_ia!} />}
         </div>
 
-        {/* Prix + plus-value */}
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', paddingTop: 12, borderTop: '1px solid var(--border-soft)' }}>
-          <div>
-            <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)', margin: 0, letterSpacing: '-0.02em' }}>
-              {fmt(bien.prix)}
-            </p>
-            {bien.prix_precedent && (
-              <p style={{ fontSize: 11, color: 'var(--orange)', margin: '2px 0 0', fontWeight: 600 }}>
-                ↓ était {fmt(bien.prix_precedent)}
-              </p>
-            )}
+        {/* Localisation */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--violet)', flexShrink: 0 }} />
+          <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>
+            {[bien.ville, bien.code_postal].filter(Boolean).join(' · ') || 'Localisation inconnue'}
           </div>
-          {pv != null && (
-            <div style={{ textAlign: 'right' }}>
-              <p style={{ fontSize: 10, color: 'var(--muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>plus-value</p>
-              <p style={{ fontSize: 15, fontWeight: 800, margin: 0, color: pv >= 0 ? '#1A7A4A' : '#C1121F' }}>
-                {pv >= 0 ? '+' : ''}{fmt(pv)}
-              </p>
+        </div>
+
+        {/* Specs */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+          {bien.nb_chambres && (
+            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 10px', fontSize: 11, fontWeight: 600, color: 'var(--muted)', display: 'flex', gap: 4 }}>
+              <span style={{ color: 'var(--text)' }}>{bien.nb_chambres}</span> ch.
+            </div>
+          )}
+          {bien.surface && (
+            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 10px', fontSize: 11, fontWeight: 600, color: 'var(--muted)', display: 'flex', gap: 4 }}>
+              <span style={{ color: 'var(--text)' }}>{bien.surface}</span> m²
+            </div>
+          )}
+          {bien.peb && (
+            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 10px', fontSize: 11, fontWeight: 600, color: 'var(--muted)', display: 'flex', gap: 4 }}>
+              PEB <span style={{ color: 'var(--violet)' }}>{bien.peb}</span>
+            </div>
+          )}
+          {bien.source && (
+            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 10px', fontSize: 10, fontWeight: 600, color: 'var(--muted2)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              {bien.source}
             </div>
           )}
         </div>
 
-        {/* Chips */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-          {bien.surface && <Chip>{bien.surface} m²</Chip>}
-          {(bien.chambres ?? bien.nb_chambres) && <Chip>{bien.chambres ?? bien.nb_chambres} ch.</Chip>}
-          {bien.terrain  && <Chip>{bien.terrain} m²</Chip>}
-          {jours != null && <Chip accent={pressé}>{pressé ? (jours >= 120 ? '🔥' : '⏰') : '⏱'} {jours}j</Chip>}
-          {bien.source   && <Chip>{bien.source}</Chip>}
-        </div>
-
         {/* CTA */}
-        {bien.url && (
-          <motion.a
-            href={bien.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={e => e.stopPropagation()}
-            whileHover={{ backgroundColor: '#5A3DEE' }}
-            style={{
-              display: 'block', textAlign: 'center', fontSize: 12, fontWeight: 700,
-              padding: '10px', borderRadius: 10,
-              backgroundColor: 'var(--purple)', color: '#fff',
-              textDecoration: 'none', transition: 'background-color 0.2s',
-              letterSpacing: '0.04em',
-            }}
-          >
-            Voir l&apos;annonce →
-          </motion.a>
-        )}
+        <motion.div
+          whileHover={{ background: 'var(--violet)', color: '#fff', boxShadow: '0 4px 20px rgba(139,92,246,0.4)' }}
+          style={{
+            padding: '10px', borderRadius: 12, textAlign: 'center',
+            background: 'var(--violet-dim)', color: 'var(--violet)',
+            fontSize: 12, fontWeight: 700, letterSpacing: '0.03em',
+            border: '1px solid rgba(139,92,246,0.2)',
+            cursor: 'pointer', transition: 'all 0.2s',
+          }}
+        >
+          Voir l&apos;analyse →
+        </motion.div>
       </div>
     </motion.div>
-  )
-}
-
-function Chip({ children, accent }: { children: React.ReactNode; accent?: boolean }) {
-  return (
-    <span style={{
-      fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 100,
-      backgroundColor: accent ? 'rgba(224,123,57,0.1)' : 'var(--bg)',
-      color: accent ? '#E07B39' : 'var(--muted)',
-      border: `1px solid ${accent ? 'rgba(224,123,57,0.25)' : 'var(--border-soft)'}`,
-    }}>
-      {children}
-    </span>
   )
 }

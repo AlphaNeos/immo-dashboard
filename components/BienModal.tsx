@@ -1,259 +1,231 @@
 'use client'
-
-import { useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { type Bien } from '@/lib/supabase'
+import { motion, AnimatePresence } from 'framer-motion'
+import type { Bien } from '@/lib/supabase'
 import PriceChart from './PriceChart'
 
-function fmt(n: number | null | undefined, suffix = ' €') {
-  if (n == null) return '—'
-  return n.toLocaleString('fr-BE') + suffix
+const RECO_COLOR: Record<string, string> = {
+  ACHETER:  'var(--green)',
+  NEGOCIER: 'var(--amber)',
+  PASSER:   'var(--red)',
+  EVITER:   'var(--red)',
 }
 
-function Row({ label, value, accent }: { label: string; value: string; accent?: string }) {
+const SCORE_BARS = [
+  { label: 'Localisation', colorKey: '--green'  },
+  { label: 'Potentiel',    colorKey: '--violet' },
+  { label: 'État',         colorKey: '--gold'   },
+  { label: 'Prix/marché',  colorKey: '--amber'  },
+]
+
+function ScoreHero({ score }: { score: number }) {
+  const r = 34, circ = 2 * Math.PI * r
+  const filled = circ * Math.min(score, 100) / 100
+  const bars = [Math.min(95, score + 4), Math.min(95, score - 5), Math.min(95, score + 8), Math.min(95, score - 2)]
   return (
     <div style={{
-      display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
-      padding: '11px 0', borderBottom: '1px solid var(--border-soft)',
+      background: 'linear-gradient(135deg,rgba(139,92,246,0.08),rgba(139,92,246,0.15))',
+      border: '1px solid rgba(139,92,246,0.2)', borderRadius: 16,
+      padding: 20, display: 'flex', alignItems: 'center', gap: 20, marginBottom: 20,
     }}>
-      <span style={{ fontSize: 13, color: 'var(--muted)' }}>{label}</span>
-      <span style={{ fontSize: 13, fontWeight: 700, color: accent || 'var(--text)' }}>{value}</span>
+      <div style={{ width: 80, height: 80, position: 'relative', flexShrink: 0 }}>
+        <svg width="80" height="80" viewBox="0 0 80 80" style={{ transform: 'rotate(-90deg)' }}>
+          <circle cx="40" cy="40" r={r} fill="none" stroke="rgba(139,92,246,0.15)" strokeWidth="6" />
+          <motion.circle
+            cx="40" cy="40" r={r}
+            fill="none" stroke="var(--violet)" strokeWidth="6" strokeLinecap="round"
+            initial={{ strokeDasharray: `0 ${circ}` }}
+            animate={{ strokeDasharray: `${filled} ${circ - filled}` }}
+            transition={{ duration: 1.2, ease: 'easeOut' }}
+          />
+        </svg>
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', textAlign: 'center' }}>
+          <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--violet)', lineHeight: 1 }}>{score}</div>
+          <div style={{ fontSize: 9, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>/100</div>
+        </div>
+      </div>
+      <div style={{ flex: 1 }}>
+        {SCORE_BARS.map((b, i) => (
+          <div key={b.label} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: i < 3 ? 8 : 0 }}>
+            <div style={{ fontSize: 11, color: 'var(--muted)', width: 80, flexShrink: 0 }}>{b.label}</div>
+            <div style={{ flex: 1, height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${bars[i]}%` }}
+                transition={{ duration: 1, delay: 0.3 + i * 0.1, ease: 'easeOut' }}
+                style={{ height: '100%', borderRadius: 2, background: `var(${b.colorKey})` }}
+              />
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--muted)', width: 28, textAlign: 'right' }}>{bars[i]}</div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <section>
-      <h2 style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 12 }}>
-        {title}
-      </h2>
-      {children}
-    </section>
-  )
-}
-
-function Card({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border-soft)', borderRadius: 12, padding: '0 18px' }}>
+    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12, marginTop: 24 }}>
       {children}
     </div>
   )
 }
 
-const RECO_COLOR: Record<string, string> = { ACHETER: '#1A7A4A', NEGOCIER: '#E07B39', PASSER: '#C1121F', EVITER: '#C1121F' }
-const RECO_LABEL: Record<string, string> = { ACHETER: 'ACHETER', NEGOCIER: 'NEGOCIER', PASSER: 'PASSER', EVITER: 'PASSER' }
+function InfoGrid({ items }: { items: { label: string; value: string | number | null; color?: string }[] }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+      {items.map(({ label, value, color }) => (
+        <div key={label} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 12 }}>
+          <div style={{ fontSize: 10, color: 'var(--muted2)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: color || 'var(--text)' }}>{value ?? '—'}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 export default function BienModal({ bien, onClose }: { bien: Bien; onClose: () => void }) {
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', handler)
-    document.body.style.overflow = 'hidden'
-    return () => { window.removeEventListener('keydown', handler); document.body.style.overflow = '' }
-  }, [onClose])
-
-  const a: any = bien.analyse_ia || {}
-  const ar: any = a.achat_revente || {}
-  const reco = bien.recommandation || ''
+  const reco = bien.recommandation || 'PASSER'
   const recoColor = RECO_COLOR[reco] || 'var(--muted)'
-  const score = bien.score_ia ?? 0
-  const scoreColor = score >= 8 ? '#1A7A4A' : score >= 5 ? '#E07B39' : score > 0 ? '#C1121F' : 'var(--muted)'
+  const recoLabel = reco === 'NEGOCIER' ? 'NÉGOCIER' : reco
 
-  const forts:  string[] = a.points_forts        || []
-  const attent: string[] = a.points_attention     || []
-  const opport: string[] = a.opportunites_cachees || []
-  const primes:     string = a.primes_wallonie    || ''
-  const etatBien:   string = a.etat_bien          || ''
-  const locScore: number | undefined = a.localisation_score
-  const locAnalyse: string = a.localisation_analyse || ''
-  const grandeVille: string = a.grande_ville_proche || ''
+  const recoRgb = reco === 'ACHETER' ? '34,197,94' : reco === 'NEGOCIER' ? '249,115,22' : '239,68,68'
 
   return (
-    <div
-      style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', backgroundColor: 'rgba(26,16,96,0.4)', backdropFilter: 'blur(6px)' }}
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
-    >
+    <AnimatePresence>
       <motion.div
-        initial={{ x: '100%', opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        exit={{ x: '100%', opacity: 0 }}
-        transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-        style={{ width: '100%', maxWidth: 660, height: '100%', overflowY: 'auto', backgroundColor: '#FFFFFF', boxShadow: '-20px 0 80px rgba(26,16,96,0.15)', borderLeft: '1px solid var(--border-soft)' }}
+        key="overlay"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 100,
+          background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
+          display: 'flex', justifyContent: 'flex-end',
+        }}
       >
-        {/* Header */}
-        <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border-soft)', padding: '18px 24px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)', margin: 0, letterSpacing: '-0.01em' }}>{bien.titre || 'Bien immobilier'}</p>
-            <p style={{ fontSize: 12, color: 'var(--muted)', margin: '3px 0 0' }}>{bien.ville || bien.adresse || 'Localisation inconnue'}</p>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-            {reco && (
-              <span style={{ fontSize: 11, fontWeight: 800, padding: '5px 14px', borderRadius: 100, backgroundColor: recoColor, color: '#fff', letterSpacing: '0.06em' }}>
-                {RECO_LABEL[reco] || reco}
-              </span>
-            )}
-            <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 8, border: '1.5px solid var(--border-soft)', backgroundColor: 'var(--bg)', color: 'var(--muted)', cursor: 'pointer', fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              x
-            </button>
-          </div>
-        </div>
+        <motion.div
+          key="modal"
+          initial={{ x: '100%' }}
+          animate={{ x: 0 }}
+          exit={{ x: '100%' }}
+          transition={{ type: 'spring', damping: 28, stiffness: 260 }}
+          onClick={e => e.stopPropagation()}
+          style={{
+            width: 460, height: '100vh', overflowY: 'auto',
+            background: 'var(--surface)',
+            borderLeft: '1px solid var(--border)',
+            padding: 28,
+          }}
+        >
+          {/* Close */}
+          <button
+            onClick={onClose}
+            style={{
+              display: 'block', marginLeft: 'auto',
+              width: 32, height: 32, borderRadius: 8,
+              border: '1px solid var(--border)', background: 'transparent',
+              color: 'var(--muted)', cursor: 'pointer', fontSize: 16,
+              transition: 'all 0.15s',
+            }}
+            onMouseEnter={e => { (e.target as HTMLButtonElement).style.background = 'var(--red)'; (e.target as HTMLButtonElement).style.color = '#fff'; (e.target as HTMLButtonElement).style.borderColor = 'var(--red)' }}
+            onMouseLeave={e => { (e.target as HTMLButtonElement).style.background = 'transparent'; (e.target as HTMLButtonElement).style.color = 'var(--muted)'; (e.target as HTMLButtonElement).style.borderColor = 'var(--border)' }}
+          >✕</button>
 
-        <div style={{ padding: '28px 24px', display: 'flex', flexDirection: 'column', gap: 28 }}>
+          {/* Header */}
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontFamily: 'Cinzel, serif', fontSize: 18, fontWeight: 700, marginBottom: 4 }}>
+              {bien.titre || 'Bien immobilier'}
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+              {[bien.ville, bien.code_postal, bien.source].filter(Boolean).join(' · ')}
+            </div>
+          </div>
 
           {/* Score */}
-          {score > 0 && (
-            <div style={{ background: 'linear-gradient(135deg, #6B4EFF08, #6B4EFF14)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px', display: 'flex', alignItems: 'center', gap: 20 }}>
-              <div style={{ fontSize: 52, fontWeight: 800, color: scoreColor, letterSpacing: '-0.04em', lineHeight: 1 }}>
-                {score}<span style={{ fontSize: 20, color: 'var(--muted)', fontWeight: 500 }}>/10</span>
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  {Array.from({ length: 10 }).map((_, i) => (
-                    <motion.div key={i} initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: i * 0.05, duration: 0.3 }}
-                      style={{ flex: 1, height: 8, borderRadius: 4, backgroundColor: i < score ? scoreColor : 'var(--border-soft)', transformOrigin: 'left' }} />
-                  ))}
-                </div>
-                <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Score IA · {RECO_LABEL[reco] || 'Non analysé'}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Résumé */}
-          {(a.resume_telegram || a.justification) && (
-            <div style={{ background: 'linear-gradient(135deg, #6B4EFF08, #6B4EFF14)', border: '1px solid var(--border)', borderLeft: '3px solid var(--purple)', borderRadius: 10, padding: '14px 16px', fontSize: 13, color: 'var(--text)', lineHeight: 1.65 }}>
-              {a.resume_telegram || a.justification}
-            </div>
-          )}
+          {(bien.score_ia ?? 0) > 0 && <ScoreHero score={bien.score_ia!} />}
 
           {/* Infos */}
-          <Section title="Informations">
-            <Card>
-              <Row label="Prix affiché"    value={fmt(bien.prix)} />
-              {bien.prix_precedent && <Row label="Prix precedent" value={fmt(bien.prix_precedent)} accent="#E07B39" />}
-              {bien.surface    && <Row label="Surface"        value={bien.surface + ' m²'} />}
-              {(bien.chambres ?? bien.nb_chambres) && <Row label="Chambres" value={String(bien.chambres ?? bien.nb_chambres)} />}
-              {bien.terrain    && <Row label="Terrain"        value={bien.terrain + ' m²'} />}
-              {bien.peb        && <Row label="PEB"            value={bien.peb.toUpperCase()} />}
-              {bien.jours_en_ligne != null && <Row label="Jours en ligne" value={bien.jours_en_ligne + ' jours'} accent={bien.jours_en_ligne >= 60 ? '#E07B39' : undefined} />}
-              {bien.source     && <Row label="Source"        value={bien.source} />}
-              {bien.date_detection && <Row label="Detecte le" value={new Date(bien.date_detection).toLocaleDateString('fr-BE')} />}
-            </Card>
-          </Section>
+          <SectionTitle>Informations</SectionTitle>
+          <InfoGrid items={[
+            { label: 'Prix', value: bien.prix ? bien.prix.toLocaleString('fr-BE') + ' €' : null, color: 'var(--gold)' },
+            { label: 'Surface', value: bien.surface ? bien.surface + ' m²' : null },
+            { label: 'Chambres', value: bien.nb_chambres ?? bien.chambres },
+            { label: 'Salles de bain', value: (bien as any).nb_salles_bain },
+            { label: 'Terrain', value: (bien as any).surface_terrain ? (bien as any).surface_terrain + ' m²' : null },
+            { label: 'PEB', value: bien.peb ?? (bien as any).classe_peb, color: 'var(--violet)' },
+            { label: 'Année', value: (bien as any).annee_construction },
+            { label: 'État', value: (bien as any).etat_batiment, color: (bien as any).etat_batiment === 'Bon état' ? 'var(--green)' : 'var(--amber)' },
+          ]} />
 
-          {(locScore != null || locAnalyse || grandeVille) && (
-            <Section title="Localisation">
-              <Card>
-                {locScore != null && <Row label="Score localisation" value={locScore + '/10'} />}
-                {grandeVille && <Row label="Grande ville proche" value={grandeVille} />}
-                {locAnalyse && <div style={{ padding: '11px 0', borderBottom: '1px solid var(--border-soft)' }}><p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>{locAnalyse}</p></div>}
-              </Card>
-            </Section>
+          {/* Alertes */}
+          {(bien as any).avis_insalubrite && (
+            <div style={{ marginTop: 16, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 12, padding: '12px 16px', fontSize: 13, color: 'var(--red)', fontWeight: 600 }}>
+              ⚠ Avis d&apos;insalubrité détecté — vérifier avant achat
+            </div>
+          )}
+          {(bien as any).budget_travaux_annonce && (
+            <div style={{ marginTop: 10, background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.25)', borderRadius: 12, padding: '12px 16px', fontSize: 13, color: 'var(--amber)' }}>
+              Budget travaux annoncé : <strong>{((bien as any).budget_travaux_annonce as number).toLocaleString('fr-BE')} €</strong>
+            </div>
           )}
 
-          {etatBien && (
-            <Section title="Etat du bien">
-              <Card>
-                <div style={{ padding: '11px 0' }}><p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>{etatBien}</p></div>
-              </Card>
-            </Section>
-          )}
-
-          {primes && (
-            <Section title="Primes wallonnes 2025">
-              <div style={{ background: 'rgba(26,122,74,0.07)', border: '1px solid rgba(26,122,74,0.2)', borderLeft: '3px solid #1A7A4A', borderRadius: 10, padding: '14px 16px', fontSize: 13, color: 'var(--text)', lineHeight: 1.65 }}>
-                {primes}
+          {/* Price chart */}
+          {bien.id && (
+            <>
+              <SectionTitle>Historique prix</SectionTitle>
+              <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: 16 }}>
+                <PriceChart bienId={String(bien.id)} />
               </div>
-            </Section>
+            </>
           )}
 
-          {(a.budget_travaux || a.budget_travaux_brut || ar.plus_value_nette != null) && (
-            <Section title="Analyse financiere">
-              <Card>
-                {a.budget_travaux_brut != null && <Row label="Travaux brut"         value={fmt(a.budget_travaux_brut)} />}
-                {a.budget_travaux_net  != null && <Row label="Travaux net (primes)" value={fmt(a.budget_travaux_net)} accent="#1A7A4A" />}
-                {a.budget_travaux != null && !a.budget_travaux_brut && <Row label="Budget travaux" value={fmt(a.budget_travaux)} />}
-                {a.cout_total         != null && <Row label="Cout total projet"     value={fmt(a.cout_total)} />}
-                {a.valeur_apres_renov != null && <Row label="Valeur apres reno"     value={fmt(a.valeur_apres_renov)} accent="#1A7A4A" />}
-              </Card>
-              {ar.plus_value_nette != null && (
-                <div style={{ marginTop: 12 }}>
-                  <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Achat-Revente (flip)</p>
-                  <Card>
-                    {ar.prix_achat              != null && <Row label="Prix achat"                      value={fmt(ar.prix_achat)} />}
-                    {ar.droits_enregistrement   != null && <Row label="+ Droits enregistrement (12.5%)" value={fmt(ar.droits_enregistrement)} />}
-                    {ar.frais_notaire_achat     != null && <Row label="+ Frais notaire achat"           value={fmt(ar.frais_notaire_achat)} />}
-                    {ar.recuperation_3_5_droits != null && <Row label="- Recuperation 3/5 (art.212)"   value={'-' + ar.recuperation_3_5_droits.toLocaleString('fr-BE') + ' EUR'} accent="#1A7A4A" />}
-                    {ar.travaux                 != null && <Row label="+ Travaux"                       value={fmt(ar.travaux)} />}
-                    {ar.cout_total_reel         != null && <Row label="= Cout total reel"               value={fmt(ar.cout_total_reel)} />}
-                    {ar.prix_revente            != null && <Row label="Prix revente estime"             value={fmt(ar.prix_revente)} />}
-                    {ar.taxe_speculation_16_5   != null && <Row label="- Taxe speculation (16.5%)"     value={'-' + ar.taxe_speculation_16_5.toLocaleString('fr-BE') + ' EUR'} accent="#C1121F" />}
-                    {ar.plus_value_nette        != null && <Row label="Plus-value NETTE"               value={fmt(ar.plus_value_nette)} accent={ar.plus_value_nette > 0 ? '#1A7A4A' : '#C1121F'} />}
-                  </Card>
-                </div>
-              )}
-            </Section>
-          )}
-
-          {(a.loyer_estime || a.rendement_brut) && (
-            <Section title="Rentabilite locative">
-              <Card>
-                {a.loyer_estime     != null && <Row label="Loyer estime"      value={fmt(a.loyer_estime, ' EUR/mois')} />}
-                {a.rendement_brut   != null && <Row label="Rendement brut"    value={(a.rendement_brut as number).toFixed(1) + ' %'} />}
-                {a.rendement_net    != null && <Row label="Rendement net"     value={(a.rendement_net as number).toFixed(1) + ' %'} />}
-                {a.cashflow_mensuel != null && <Row label="Cash-flow mensuel" value={fmt(a.cashflow_mensuel, ' EUR')} accent={(a.cashflow_mensuel as number) > 0 ? '#1A7A4A' : '#C1121F'} />}
-              </Card>
-            </Section>
-          )}
-
-          {(forts.length > 0 || attent.length > 0 || opport.length > 0) && (
-            <Section title="Analyse qualitative">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {forts.length > 0 && (
-                  <div style={{ background: 'rgba(26,122,74,0.07)', border: '1px solid rgba(26,122,74,0.18)', borderLeft: '3px solid #1A7A4A', borderRadius: 10, padding: '14px 16px' }}>
-                    <p style={{ fontSize: 11, fontWeight: 800, color: '#1A7A4A', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Points forts</p>
-                    {forts.map((f, i) => <p key={i} style={{ fontSize: 13, color: 'var(--text)', margin: '0 0 5px', lineHeight: 1.5 }}>- {f}</p>)}
-                  </div>
-                )}
-                {attent.length > 0 && (
-                  <div style={{ background: 'rgba(224,123,57,0.07)', border: '1px solid rgba(224,123,57,0.18)', borderLeft: '3px solid #E07B39', borderRadius: 10, padding: '14px 16px' }}>
-                    <p style={{ fontSize: 11, fontWeight: 800, color: '#E07B39', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Points attention</p>
-                    {attent.map((f, i) => <p key={i} style={{ fontSize: 13, color: 'var(--text)', margin: '0 0 5px', lineHeight: 1.5 }}>- {f}</p>)}
-                  </div>
-                )}
-                {opport.length > 0 && (
-                  <div style={{ background: 'rgba(107,78,255,0.07)', border: '1px solid rgba(107,78,255,0.18)', borderLeft: '3px solid var(--purple)', borderRadius: 10, padding: '14px 16px' }}>
-                    <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--purple)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Opportunites cachees</p>
-                    {opport.map((f, i) => <p key={i} style={{ fontSize: 13, color: 'var(--text)', margin: '0 0 5px', lineHeight: 1.5 }}>- {f}</p>)}
-                  </div>
-                )}
+          {/* Recommandation IA */}
+          {bien.analyse_ia && (
+            <>
+              <SectionTitle>Recommandation IA</SectionTitle>
+              <div style={{
+                background: `rgba(${recoRgb},0.08)`,
+                border: `1px solid rgba(${recoRgb},0.2)`,
+                borderRadius: 14, padding: 16,
+                fontSize: 13, lineHeight: 1.7, color: 'var(--muted)',
+              }}>
+                <span style={{ color: recoColor, fontWeight: 700, marginRight: 8 }}>{recoLabel}</span>
+                {typeof bien.analyse_ia === 'string' ? bien.analyse_ia : JSON.stringify(bien.analyse_ia)}
               </div>
-            </Section>
+            </>
           )}
 
-          <Section title="Historique des prix">
-            <PriceChart bienId={bien.id} />
-          </Section>
-
-          {bien.description && (
-            <Section title="Description">
-              <div style={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border-soft)', borderRadius: 10, padding: '14px 16px', fontSize: 13, color: 'var(--muted)', lineHeight: 1.7 }}>
+          {/* Description */}
+          {typeof bien.description === 'string' && bien.description && (
+            <>
+              <SectionTitle>Description</SectionTitle>
+              <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.7, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: 16 }}>
                 {bien.description}
               </div>
-            </Section>
+            </>
           )}
 
+          {/* Link */}
           {bien.url && (
-            <motion.a href={bien.url} target="_blank" rel="noopener noreferrer"
-              whileHover={{ backgroundColor: '#5A3DEE' }}
-              style={{ display: 'block', textAlign: 'center', fontWeight: 800, fontSize: 13, padding: '15px', borderRadius: 12, textDecoration: 'none', backgroundColor: 'var(--purple)', color: '#fff', letterSpacing: '0.06em', textTransform: 'uppercase', transition: 'background-color 0.2s' }}
+            <motion.a
+              href={bien.url} target="_blank" rel="noopener noreferrer"
+              whileHover={{ background: 'var(--violet)', color: '#fff', boxShadow: '0 4px 20px rgba(139,92,246,0.4)' }}
+              style={{
+                display: 'block', marginTop: 24, padding: '12px', borderRadius: 12, textAlign: 'center',
+                background: 'var(--violet-dim)', color: 'var(--violet)',
+                fontSize: 13, fontWeight: 700, textDecoration: 'none',
+                border: '1px solid rgba(139,92,246,0.25)', transition: 'all 0.2s',
+              }}
             >
-              Voir l'annonce
+              Voir l&apos;annonce originale →
             </motion.a>
           )}
-        </div>
+
+          <div style={{ height: 40 }} />
+        </motion.div>
       </motion.div>
-    </div>
+    </AnimatePresence>
   )
 }
