@@ -21,27 +21,37 @@ const RECO_LABEL: Record<string, string> = {
   EVITER:   'ÉVITER',
 }
 
-function ScoreRing({ score }: { score: number }) {
-  const r = 20, circ = 2 * Math.PI * r
-  const filled = circ * Math.min(score, 100) / 100
+function ScoreBadge({ score100 }: { score100: number }) {
+  const score10 = Math.round(score100 / 10)
+  const color =
+    score10 >= 8 ? 'var(--green)' :
+    score10 >= 6 ? 'var(--gold)' :
+    score10 >= 4 ? 'var(--amber)' : 'var(--red)'
+  const bg =
+    score10 >= 8 ? 'rgba(34,197,94,0.12)' :
+    score10 >= 6 ? 'rgba(245,158,11,0.12)' :
+    score10 >= 4 ? 'rgba(249,115,22,0.12)' : 'rgba(239,68,68,0.12)'
   return (
-    <div style={{ width: 52, height: 52, position: 'relative', flexShrink: 0 }}>
-      <svg width="52" height="52" viewBox="0 0 52 52" style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx="26" cy="26" r={r} fill="none" stroke="rgba(139,92,246,0.15)" strokeWidth="4" />
-        <motion.circle
-          cx="26" cy="26" r={r}
-          fill="none" stroke="var(--violet)" strokeWidth="4"
-          strokeLinecap="round"
-          strokeDasharray={`${filled} ${circ - filled}`}
-          initial={{ strokeDasharray: `0 ${circ}` }}
-          animate={{ strokeDasharray: `${filled} ${circ - filled}` }}
-          transition={{ duration: 1, ease: 'easeOut' }}
-        />
-      </svg>
+    <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
       <div style={{
-        position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-        fontSize: 12, fontWeight: 800, color: 'var(--violet)',
-      }}>{score}</div>
+        background: bg, border: `1.5px solid ${color}44`,
+        borderRadius: 10, padding: '6px 10px',
+        display: 'flex', alignItems: 'baseline', gap: 2,
+      }}>
+        <span style={{ fontSize: 22, fontWeight: 800, color, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+          {score10}
+        </span>
+        <span style={{ fontSize: 11, color, opacity: 0.7, fontWeight: 600 }}>/10</span>
+      </div>
+      {/* Mini bar */}
+      <div style={{ width: 44, height: 3, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${score10 * 10}%` }}
+          transition={{ duration: 0.8, ease: 'easeOut' }}
+          style={{ height: '100%', background: color, borderRadius: 2 }}
+        />
+      </div>
     </div>
   )
 }
@@ -138,7 +148,7 @@ export default function BienCard({ bien, onClick, index }: { bien: Bien; onClick
               {bien.titre || 'Sans titre'}
             </div>
           </div>
-          {(bien.score_ia ?? 0) > 0 && <ScoreRing score={bien.score_ia!} />}
+          {(bien.score_ia ?? 0) > 0 && <ScoreBadge score100={bien.score_ia!} />}
         </div>
 
         {/* Localisation */}

@@ -17,45 +17,83 @@ const SCORE_BARS = [
   { label: 'Prix/marché',  colorKey: '--amber'  },
 ]
 
-function ScoreHero({ score }: { score: number }) {
-  const r = 34, circ = 2 * Math.PI * r
-  const filled = circ * Math.min(score, 100) / 100
-  const bars = [Math.min(95, score + 4), Math.min(95, score - 5), Math.min(95, score + 8), Math.min(95, score - 2)]
+function ScoreHero({ score100 }: { score100: number }) {
+  const score10 = Math.round(score100 / 10)
+  const color =
+    score10 >= 8 ? 'var(--green)' :
+    score10 >= 6 ? 'var(--gold)' :
+    score10 >= 4 ? 'var(--amber)' : 'var(--red)'
+  const label =
+    score10 >= 8 ? 'Excellent' :
+    score10 >= 6 ? 'Bon' :
+    score10 >= 4 ? 'Moyen' : 'Faible'
+
+  // 10 segments (1 par point)
+  const segments = Array.from({ length: 10 }, (_, i) => i + 1)
+
+  const bars = [
+    { label: 'Localisation', val: Math.min(10, Math.round(score10 * 1.05)), color: 'var(--green)'  },
+    { label: 'Potentiel',    val: Math.min(10, Math.round(score10 * 0.95)), color: 'var(--violet)' },
+    { label: 'État',         val: Math.min(10, Math.round(score10 * 1.1)),  color: 'var(--gold)'   },
+    { label: 'Prix/marché',  val: Math.min(10, Math.round(score10 * 0.98)), color: 'var(--amber)'  },
+  ]
+
   return (
     <div style={{
-      background: 'linear-gradient(135deg,rgba(139,92,246,0.08),rgba(139,92,246,0.15))',
-      border: '1px solid rgba(139,92,246,0.2)', borderRadius: 16,
-      padding: 20, display: 'flex', alignItems: 'center', gap: 20, marginBottom: 20,
+      background: 'var(--card2)', border: '1px solid var(--border)',
+      borderRadius: 16, padding: 20, marginBottom: 20,
     }}>
-      <div style={{ width: 80, height: 80, position: 'relative', flexShrink: 0 }}>
-        <svg width="80" height="80" viewBox="0 0 80 80" style={{ transform: 'rotate(-90deg)' }}>
-          <circle cx="40" cy="40" r={r} fill="none" stroke="rgba(139,92,246,0.15)" strokeWidth="6" />
-          <motion.circle
-            cx="40" cy="40" r={r}
-            fill="none" stroke="var(--violet)" strokeWidth="6" strokeLinecap="round"
-            initial={{ strokeDasharray: `0 ${circ}` }}
-            animate={{ strokeDasharray: `${filled} ${circ - filled}` }}
-            transition={{ duration: 1.2, ease: 'easeOut' }}
-          />
-        </svg>
-        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', textAlign: 'center' }}>
-          <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--violet)', lineHeight: 1 }}>{score}</div>
-          <div style={{ fontSize: 9, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>/100</div>
+      {/* Score principal */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 18 }}>
+        <div style={{
+          background: `${color}18`, border: `2px solid ${color}44`,
+          borderRadius: 14, padding: '10px 18px',
+          display: 'flex', alignItems: 'baseline', gap: 4,
+        }}>
+          <span style={{ fontSize: 44, fontWeight: 800, color, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+            {score10}
+          </span>
+          <span style={{ fontSize: 18, fontWeight: 600, color, opacity: 0.6 }}>/10</span>
+        </div>
+        <div>
+          <div style={{ fontSize: 16, fontWeight: 700, color }}>{label}</div>
+          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Score d&apos;opportunité IA</div>
         </div>
       </div>
-      <div style={{ flex: 1 }}>
-        {SCORE_BARS.map((b, i) => (
-          <div key={b.label} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: i < 3 ? 8 : 0 }}>
-            <div style={{ fontSize: 11, color: 'var(--muted)', width: 80, flexShrink: 0 }}>{b.label}</div>
+
+      {/* Segments 1–10 */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 18 }}>
+        {segments.map(n => (
+          <motion.div
+            key={n}
+            initial={{ scaleY: 0 }}
+            animate={{ scaleY: 1 }}
+            transition={{ delay: n * 0.05, duration: 0.3, ease: 'easeOut' }}
+            style={{
+              flex: 1, height: 8, borderRadius: 4,
+              background: n <= score10 ? color : 'var(--border)',
+              transformOrigin: 'bottom',
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Sous-scores */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {bars.map(b => (
+          <div key={b.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ fontSize: 11, color: 'var(--muted)', width: 90, flexShrink: 0 }}>{b.label}</div>
             <div style={{ flex: 1, height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>
               <motion.div
                 initial={{ width: 0 }}
-                animate={{ width: `${bars[i]}%` }}
-                transition={{ duration: 1, delay: 0.3 + i * 0.1, ease: 'easeOut' }}
-                style={{ height: '100%', borderRadius: 2, background: `var(${b.colorKey})` }}
+                animate={{ width: `${b.val * 10}%` }}
+                transition={{ duration: 0.8, ease: 'easeOut' }}
+                style={{ height: '100%', borderRadius: 2, background: b.color }}
               />
             </div>
-            <div style={{ fontSize: 11, color: 'var(--muted)', width: 28, textAlign: 'right' }}>{bars[i]}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: b.color, width: 32, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+              {b.val}/10
+            </div>
           </div>
         ))}
       </div>
@@ -144,7 +182,7 @@ export default function BienModal({ bien, onClose }: { bien: Bien; onClose: () =
           </div>
 
           {/* Score */}
-          {(bien.score_ia ?? 0) > 0 && <ScoreHero score={bien.score_ia!} />}
+          {(bien.score_ia ?? 0) > 0 && <ScoreHero score100={bien.score_ia!} />}
 
           {/* Infos */}
           <SectionTitle>Informations</SectionTitle>

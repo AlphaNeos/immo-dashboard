@@ -64,12 +64,12 @@ export default function Filters({ filters, onChange }: { filters: FilterState; o
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
         <span style={{ fontSize: 11, color: 'var(--muted2)' }}>Score min</span>
         <input
-          type="range" min={0} max={90} step={5} value={filters.scoreMin}
-          onChange={e => set({ scoreMin: Number(e.target.value) })}
+          type="range" min={0} max={9} step={1} value={Math.round(filters.scoreMin / 10)}
+          onChange={e => set({ scoreMin: Number(e.target.value) * 10 })}
           style={{ accentColor: 'var(--violet)', width: 80 }}
         />
-        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--violet)', width: 24, fontVariantNumeric: 'tabular-nums' }}>
-          {filters.scoreMin}
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--violet)', width: 36, fontVariantNumeric: 'tabular-nums' }}>
+          {Math.round(filters.scoreMin / 10)}/10
         </span>
       </div>
     </div>
