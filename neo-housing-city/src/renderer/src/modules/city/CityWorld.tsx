@@ -3,6 +3,8 @@ import { Batch } from './Batch'
 import { Buildings } from '../housing/Buildings'
 import { Gallery } from '../housing/Gallery'
 import { INITIAL_BUILDINGS } from '../housing/buildings'
+import { Life } from '../life/Life'
+import { lampKey, patchLamp, windPine, windPineKey, windRound, windRoundKey } from '../life/shaders'
 import { BLOCK, HALF, POND, ROADS_X, ROADS_Z, ROAD_W, SIDEWALK_TOP, buildCity, type Item } from './layout'
 
 const ASPHALT = '#4a4f59'
@@ -158,16 +160,16 @@ function Props({ data }: { data: ReturnType<typeof buildCity> }) {
       </Batch>
       <Batch items={parts.blobs} cast>
         <icosahedronGeometry args={[0.55, 1]} />
-        <meshStandardMaterial roughness={0.9} flatShading />
+        <meshStandardMaterial roughness={0.9} flatShading onBeforeCompile={windRound} customProgramCacheKey={windRoundKey} />
       </Batch>
       <Batch items={parts.blobs2} cast>
         <icosahedronGeometry args={[0.55, 1]} />
-        <meshStandardMaterial roughness={0.9} flatShading />
+        <meshStandardMaterial roughness={0.9} flatShading onBeforeCompile={windRound} customProgramCacheKey={windRoundKey} />
       </Batch>
       {[parts.cones1, parts.cones2, parts.cones3].map((items, i) => (
         <Batch key={i} items={items} cast>
           <coneGeometry args={[0.5, 0.8, 7]} />
-          <meshStandardMaterial roughness={0.9} flatShading />
+          <meshStandardMaterial roughness={0.9} flatShading onBeforeCompile={windPine} customProgramCacheKey={windPineKey} />
         </Batch>
       ))}
       <Batch items={data.bushes} cast>
@@ -188,7 +190,7 @@ function Props({ data }: { data: ReturnType<typeof buildCity> }) {
       </Batch>
       <Batch items={lampHeads}>
         <sphereGeometry args={[0.1, 12, 8]} />
-        <meshStandardMaterial color="#fff3d0" emissive="#ffd98a" emissiveIntensity={1.4} />
+        <meshStandardMaterial color="#fff3d0" emissive="#ffd98a" emissiveIntensity={1.0} onBeforeCompile={patchLamp} customProgramCacheKey={lampKey} />
       </Batch>
       <Batch items={benchSeats} cast>
         <boxGeometry />
@@ -218,6 +220,7 @@ export function CityWorld({ gallery = false }: { gallery?: boolean }) {
       <Urban data={data} />
       <Props data={data} />
       <Buildings plots={data.plots} />
+      <Life data={data} />
     </group>
   )
 }

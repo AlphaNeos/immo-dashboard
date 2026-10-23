@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { glassKey, patchGlass } from '../life/shaders'
 import { getModelGeometry } from './models'
 import type { BuildingModelId } from './types'
 
@@ -13,7 +14,7 @@ export function BuildingMesh({ model, x, y, z, rotationY }: { model: BuildingMod
       </mesh>
       {geo.glass && (
         <mesh geometry={geo.glass}>
-          <meshStandardMaterial vertexColors roughness={0.15} color="#ffffff" emissive="#2d5d78" emissiveIntensity={0.3} />
+          <meshStandardMaterial vertexColors roughness={0.15} color="#ffffff" emissive="#2d5d78" emissiveIntensity={0.3} onBeforeCompile={patchGlass} customProgramCacheKey={glassKey} />
         </mesh>
       )}
     </group>

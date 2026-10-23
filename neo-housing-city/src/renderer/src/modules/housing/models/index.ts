@@ -25,3 +25,11 @@ export function getModelGeometry(id: BuildingModelId) {
   }
   return m
 }
+
+// Sommet des cheminées (repère local du bâtiment) : sert à la fumée animée.
+export const CHIMNEYS: Partial<Record<BuildingModelId, [number, number, number][]>> = {
+  classic: [[0.5, 1.38, -0.75]],
+  'upper-floor': [[0.55, 1.44, -0.7], [-0.55, 1.44, -0.7]],
+  'apartment-block': [[0.7, 2.31, -0.75], [-0.7, 2.31, -0.75]],
+  renovation: [[0.5, 1.38, -0.75]]
+}

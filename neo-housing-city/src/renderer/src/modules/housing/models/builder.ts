@@ -17,6 +17,13 @@ const ROT: Record<Side, number> = { front: 0, right: Math.PI / 2, back: Math.PI,
 
 export class Builder {
   private parts: Record<Layer, BufferGeometry[]> = { body: [], glass: [] }
+  private seed = 12345
+
+  // Pseudo-aléatoire déterministe : les mêmes fenêtres sont allumées à chaque lancement.
+  private rand() {
+    this.seed = (Math.imul(this.seed, 1664525) + 1013904223) >>> 0
+    return this.seed / 4294967296
+  }
 
   private tint(g: BufferGeometry, color: string): BufferGeometry {
     const out = g.index ? g.toNonIndexed() : g
@@ -29,7 +36,13 @@ export class Builder {
     return out
   }
   add(g: BufferGeometry, color: string, layer: Layer = 'body') {
-    this.parts[layer].push(this.tint(g, color))
+    const t = this.tint(g, color)
+    if (layer === 'glass') {
+      const lit = this.rand() < 0.6 ? 1 : 0 // ~60 % des fenêtres s'allument la nuit
+      const n = t.attributes.position.count
+      t.setAttribute('aLit', new Float32BufferAttribute(new Float32Array(n).fill(lit), 1))
+    }
+    this.parts[layer].push(t)
   }
 
   // ---- formes de base (y0 = hauteur du bas, au-dessus du gazon)

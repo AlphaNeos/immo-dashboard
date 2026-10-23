@@ -29,6 +29,8 @@ Stack : Electron + React + TypeScript + Vite + Three.js / React Three Fiber / Dr
 | Recentrer | R ou bouton ⌂ |
 | Statistiques de rendu | F3 |
 | Vitrine des 6 modèles de bâtiments | F4 |
+| Animations ON / OFF | bouton « Animations » ou touche P |
+| Heure de la journée (jour / nuit) | curseur en bas à droite |
 
 ## Architecture
 - `src/main/` : processus principal Electron (fenêtre, système)
@@ -38,5 +40,6 @@ Stack : Electron + React + TypeScript + Vite + Three.js / React Three Fiber / Dr
 - `src/renderer/src/scene/` : briques 3D (R3F/Drei)
 - `src/renderer/src/modules/city/` : la ville 3D (`layout.ts` = plan de la ville, `CityWorld.tsx` = objets 3D, `CameraRig.tsx` = caméra)
 - `src/renderer/src/modules/housing/` : bâtiments (`types.ts` = modèle de données, `buildings.ts` = liste et contrôles, `models/` = les 6 modèles 3D)
+- `src/renderer/src/modules/life/` : ville vivante (`traffic.ts` circulation, `pedestrians.ts` piétons, `lighting.ts` jour/nuit, `Decor.tsx` fontaine/fumée/oiseaux)
 - `src/renderer/src/modules/` : futures fonctionnalités (ville, logements, finances...)
 - `src/renderer/src/core/` : types et utilitaires partagés
