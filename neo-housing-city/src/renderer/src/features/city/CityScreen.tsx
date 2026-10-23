@@ -21,9 +21,13 @@ function StatsPanel() {
 
 export function CityScreen({ onExit }: { onExit: () => void }) {
   const [showStats, setShowStats] = useState(false)
+  const [gallery, setGallery] = useState(false)
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'F3' && setShowStats((v) => !v)
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'F3') setShowStats((v) => !v)
+      if (e.key === 'F4') setGallery((v) => !v)
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
@@ -31,7 +35,7 @@ export function CityScreen({ onExit }: { onExit: () => void }) {
   return (
     <main className="city">
       <SceneBoundary>
-        <CityScene />
+        <CityScene gallery={gallery} />
       </SceneBoundary>
 
       <header className="hud__title">

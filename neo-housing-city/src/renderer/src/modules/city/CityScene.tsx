@@ -3,7 +3,7 @@ import { Canvas, useThree } from '@react-three/fiber'
 import { CameraRig } from './CameraRig'
 import { CityWorld } from './CityWorld'
 
-function Lighting() {
+function Lighting({ refresh }: { refresh: unknown }) {
   const gl = useThree((s) => s.gl)
   const invalidate = useThree((s) => s.invalidate)
 
@@ -12,7 +12,7 @@ function Lighting() {
     gl.shadowMap.autoUpdate = false
     gl.shadowMap.needsUpdate = true
     invalidate()
-  }, [gl, invalidate])
+  }, [gl, invalidate, refresh])
 
   return (
     <>
@@ -52,7 +52,7 @@ function StatsProbe() {
   return null
 }
 
-export function CityScene() {
+export function CityScene({ gallery = false }: { gallery?: boolean }) {
   return (
     <Canvas
       orthographic
@@ -62,8 +62,8 @@ export function CityScene() {
       camera={{ near: 0.1, far: 300, zoom: 26, position: [60, 50, 60] }}
       gl={{ antialias: true, powerPreference: 'high-performance' }}
     >
-      <Lighting />
-      <CityWorld />
+      <Lighting refresh={gallery} />
+      <CityWorld gallery={gallery} />
       <CameraRig />
       <StatsProbe />
     </Canvas>

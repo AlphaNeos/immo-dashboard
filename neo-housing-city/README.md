@@ -15,6 +15,7 @@ Stack : Electron + React + TypeScript + Vite + Three.js / React Three Fiber / Dr
 | `npm run dev` | lance l'app en mode développement |
 | `npm run build` | compile l'app |
 | `npm start` | lance la version compilée |
+| `npm test` | lance les tests automatiques |
 | `npm run typecheck` | vérifie le code TypeScript |
 | `npm run package:mac` | crée l'application Mac (.dmg) |
 
@@ -27,6 +28,7 @@ Stack : Electron + React + TypeScript + Vite + Three.js / React Three Fiber / Dr
 | Tourner librement | Maj + glisser, ou clic droit + glisser |
 | Recentrer | R ou bouton ⌂ |
 | Statistiques de rendu | F3 |
+| Vitrine des 6 modèles de bâtiments | F4 |
 
 ## Architecture
 - `src/main/` : processus principal Electron (fenêtre, système)
@@ -35,5 +37,6 @@ Stack : Electron + React + TypeScript + Vite + Three.js / React Three Fiber / Dr
 - `src/renderer/src/features/` : écrans (accueil...)
 - `src/renderer/src/scene/` : briques 3D (R3F/Drei)
 - `src/renderer/src/modules/city/` : la ville 3D (`layout.ts` = plan de la ville, `CityWorld.tsx` = objets 3D, `CameraRig.tsx` = caméra)
+- `src/renderer/src/modules/housing/` : bâtiments (`types.ts` = modèle de données, `buildings.ts` = liste et contrôles, `models/` = les 6 modèles 3D)
 - `src/renderer/src/modules/` : futures fonctionnalités (ville, logements, finances...)
 - `src/renderer/src/core/` : types et utilitaires partagés

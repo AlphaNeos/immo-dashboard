@@ -1,5 +1,8 @@
 import { useMemo } from 'react'
 import { Batch } from './Batch'
+import { Buildings } from '../housing/Buildings'
+import { Gallery } from '../housing/Gallery'
+import { INITIAL_BUILDINGS } from '../housing/buildings'
 import { BLOCK, HALF, POND, ROADS_X, ROADS_Z, ROAD_W, SIDEWALK_TOP, buildCity, type Item } from './layout'
 
 const ASPHALT = '#4a4f59'
@@ -203,14 +206,18 @@ function Props({ data }: { data: ReturnType<typeof buildCity> }) {
   )
 }
 
-export function CityWorld() {
-  const data = useMemo(() => buildCity(), [])
+const OCCUPIED = INITIAL_BUILDINGS.map((b) => b.plotId)
+
+export function CityWorld({ gallery = false }: { gallery?: boolean }) {
+  const data = useMemo(() => buildCity(OCCUPIED), [])
+  if (gallery) return <Gallery />
   return (
     <group>
       <Terrain patches={data.patches} />
       <Roads dashes={data.dashes} crosswalks={data.crosswalks} />
       <Urban data={data} />
       <Props data={data} />
+      <Buildings plots={data.plots} />
     </group>
   )
 }

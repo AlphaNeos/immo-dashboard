@@ -12,6 +12,7 @@ export function CameraRig() {
 
   useEffect(() => {
     store.wake = invalidate
+    ;(window as unknown as { __neoCamera?: typeof store }).__neoCamera = store // pour les tests
     const el = gl.domElement
     let mode: 'pan' | 'rotate' | null = null
     let lx = 0

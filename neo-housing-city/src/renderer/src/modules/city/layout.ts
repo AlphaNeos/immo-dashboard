@@ -20,6 +20,8 @@ export const POND = { x: 22.4, z: 19.8, r: 3.4 }
 
 export type PlotKind = 'buildable' | 'park' | 'fountain'
 export interface Plot {
+  id: string // identifiant stable, ex. « plot-10 »
+  facing: number // rotation Y : 0 = façade vers +z, π = vers -z
   x: number
   z: number
   size: number
@@ -64,7 +66,7 @@ const pick = <T,>(rnd: () => number, a: T[]) => a[Math.floor(rnd() * a.length)]
 export type TreeKind = 'round' | 'pine'
 export interface Tree { x: number; z: number; base: number; s: number; kind: TreeKind; c: string }
 
-export function buildCity() {
+export function buildCity(occupiedPlotIds: string[] = []) {
   const rnd = mulberry32(20260101)
   const { urban, outer } = buildBlocks()
 
@@ -76,7 +78,7 @@ export function buildCity() {
     ;[[-1.75, -1.75], [1.75, -1.75], [-1.75, 1.75], [1.75, 1.75]].forEach(([dx, dz], qi) => {
       const idx = bi * 4 + qi
       const kind: PlotKind = idx === 5 ? 'fountain' : idx % 3 === 2 ? 'park' : 'buildable'
-      plots.push({ x: cx + dx, z: cz + dz, size: 3.2, top: SIDEWALK_TOP + 0.03, kind })
+      plots.push({ id: `plot-${String(idx + 1).padStart(2, '0')}`, facing: dz > 0 ? 0 : Math.PI, x: cx + dx, z: cz + dz, size: 3.2, top: SIDEWALK_TOP + 0.03, kind })
     })
   })
   // grandes zones constructibles en périphérie (extensions futures)
@@ -85,9 +87,9 @@ export function buildCity() {
     { x0: 19.4, x1: 25.4, z0: -22.8, z1: -16.8 },
     { x0: -25.4, x1: -19.4, z0: 16.8, z1: 22.8 }
   ]
-  for (const r of outerPlots) {
-    plots.push({ x: (r.x0 + r.x1) / 2, z: (r.z0 + r.z1) / 2, size: 6, top: 0.04, kind: 'buildable' })
-  }
+  outerPlots.forEach((r, i) => {
+    plots.push({ id: `plot-ext-${i + 1}`, facing: 0, x: (r.x0 + r.x1) / 2, z: (r.z0 + r.z1) / 2, size: 6, top: 0.04, kind: 'buildable' })
+  })
 
   // ---- Exclusions pour les arbres et décors extérieurs
   const blocked = (x: number, z: number, m = 0) => {
@@ -221,7 +223,7 @@ export function buildCity() {
     c: p.kind === 'buildable' ? '#eadfbf' : p.kind === 'park' ? '#8fcf6a' : '#d8d2c4'
   }))
   const borders: Item[] = []
-  for (const p of plots.filter((q) => q.kind === 'buildable')) {
+  for (const p of plots.filter((q) => q.kind === 'buildable' && !occupiedPlotIds.includes(q.id))) {
     const y = p.top + 0.006
     const e = p.size / 2 - 0.05
     const c = '#f0a93b'
