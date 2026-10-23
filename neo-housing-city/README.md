@@ -18,11 +18,22 @@ Stack : Electron + React + TypeScript + Vite + Three.js / React Three Fiber / Dr
 | `npm run typecheck` | vérifie le code TypeScript |
 | `npm run package:mac` | crée l'application Mac (.dmg) |
 
+## Commandes dans la ville
+| Action | Contrôle |
+|---|---|
+| Déplacer | glisser à la souris, ou WASD / flèches |
+| Zoom | molette, pincement trackpad, ou touches + / - |
+| Tourner (quart de tour fluide) | Q / E ou boutons ⟲ ⟳ |
+| Tourner librement | Maj + glisser, ou clic droit + glisser |
+| Recentrer | R ou bouton ⌂ |
+| Statistiques de rendu | F3 |
+
 ## Architecture
 - `src/main/` : processus principal Electron (fenêtre, système)
 - `src/preload/` : pont sécurisé interface <-> système
 - `src/renderer/src/app/` : racine de l'interface
 - `src/renderer/src/features/` : écrans (accueil...)
 - `src/renderer/src/scene/` : briques 3D (R3F/Drei)
+- `src/renderer/src/modules/city/` : la ville 3D (`layout.ts` = plan de la ville, `CityWorld.tsx` = objets 3D, `CameraRig.tsx` = caméra)
 - `src/renderer/src/modules/` : futures fonctionnalités (ville, logements, finances...)
 - `src/renderer/src/core/` : types et utilitaires partagés

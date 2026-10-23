@@ -35,6 +35,44 @@ body {
   font-size: 15px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  opacity: 0.6;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background 0.2s;
 }
+.welcome__button:hover { background: rgba(61,224,255,0.25); }
 .welcome__version { position: absolute; bottom: 20px; font-size: 12px; color: #5d7a94; }
+
+/* ---- Ville ---- */
+.city { position: relative; height: 100%; background: linear-gradient(#8fcdee 0%, #cfe9f2 55%, #e6f1e4 100%); }
+.city canvas { display: block; touch-action: none; }
+.hud__title {
+  position: absolute; top: 14px; left: 14px; display: flex; align-items: center; gap: 12px;
+  padding: 8px 14px 8px 16px; padding-left: 78px; /* place pour les boutons macOS */
+  border-radius: 12px; background: rgba(10,18,36,0.55); backdrop-filter: blur(8px);
+  -webkit-app-region: drag;
+}
+.hud__logo { font-size: 13px; letter-spacing: 0.18em; font-weight: 700; color: #e8f4ff; }
+.hud__logo b { color: #3de0ff; font-weight: 700; }
+.hud__link {
+  -webkit-app-region: no-drag; background: none; border: 1px solid rgba(255,255,255,0.25);
+  color: #bcd3e6; border-radius: 8px; padding: 3px 10px; font-size: 11px; cursor: pointer;
+}
+.hud__link:hover { color: #fff; border-color: #fff; }
+.hud__controls {
+  position: absolute; right: 14px; bottom: 14px; display: flex; align-items: center; gap: 6px;
+  padding: 6px; border-radius: 12px; background: rgba(10,18,36,0.55); backdrop-filter: blur(8px);
+}
+.hud__controls button {
+  width: 34px; height: 34px; border-radius: 8px; border: none; cursor: pointer;
+  background: rgba(255,255,255,0.1); color: #e8f4ff; font-size: 18px; line-height: 1;
+}
+.hud__controls button:hover { background: rgba(61,224,255,0.3); }
+.hud__sep { width: 1px; height: 20px; background: rgba(255,255,255,0.2); }
+.hud__hint {
+  position: absolute; left: 14px; bottom: 14px; font-size: 11px; color: rgba(10,18,36,0.7);
+  background: rgba(255,255,255,0.55); padding: 6px 10px; border-radius: 8px; pointer-events: none;
+}
+.hud__stats {
+  position: absolute; top: 14px; right: 14px; font: 11px ui-monospace, Menlo, monospace;
+  color: #e8f4ff; background: rgba(10,18,36,0.7); padding: 6px 10px; border-radius: 8px;
+}
