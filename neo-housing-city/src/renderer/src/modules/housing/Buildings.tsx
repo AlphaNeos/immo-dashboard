@@ -53,7 +53,7 @@ export function Buildings({ plots }: { plots: Plot[] }) {
         return (
           <group key={b.id}>
             <BuildingMesh
-              model={b.model} x={b.position.x} y={plot.top} z={b.position.z} rotationY={b.rotationY}
+              buildingId={b.id} model={b.model} x={b.position.x} y={plot.top} z={b.position.z} rotationY={b.rotationY}
               hovered={hovered} selected={selected} onHover={(o) => selection.hover(o ? b.id : null)} onSelect={pick}
             />
             {prop && (

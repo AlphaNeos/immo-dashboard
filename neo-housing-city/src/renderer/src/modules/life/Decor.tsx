@@ -3,6 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { DynamicDrawUsage, Matrix4, Quaternion, Vector3, type InstancedMesh, type Mesh, type MeshBasicMaterial } from 'three'
 import { POND, type Plot } from '../city/layout'
 import { CHIMNEYS } from '../housing/models'
+import { hasRealistic } from '../housing/realistic'
 import type { Building } from '../housing/types'
 import { animStore } from './animStore'
 import { nightAt } from './lighting'
@@ -28,7 +29,7 @@ export function Decor({ plots, buildings }: { plots: Plot[]; buildings: Building
 
   const chimneys = useMemo(() => {
     const out: Vector3[] = []
-    for (const b of buildings) {
+    for (const b of buildings.filter((x) => !hasRealistic(x.id))) { // pas de fumée « inventée » sur un modèle réaliste
       const plot = plots.find((p) => p.id === b.plotId)!
       for (const [lx, ly, lz] of CHIMNEYS[b.model] ?? []) {
         const c = Math.cos(b.rotationY), s = Math.sin(b.rotationY)
