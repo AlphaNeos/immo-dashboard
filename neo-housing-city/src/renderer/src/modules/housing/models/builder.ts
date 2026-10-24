@@ -62,6 +62,31 @@ export class Builder {
     g.translate(cx, LAWN + y0 + h / 2, cz)
     this.add(g, color)
   }
+  cone(cx: number, y0: number, cz: number, r: number, h: number, color: string, seg = 8) {
+    const g = new ConeGeometry(r, h, seg)
+    g.translate(cx, LAWN + y0 + h / 2, cz)
+    this.add(g, color)
+  }
+  // Petite voiture garée (façade du véhicule vers +z ou +x selon rotY).
+  car(cx: number, cz: number, rotY: number, color: string) {
+    const parts: [number, number, number, number, number, number, string][] = [
+      [0, 0.07, 0, 0.38, 0.1, 0.8, color], [0, 0.17, -0.04, 0.32, 0.1, 0.42, color], [0, 0.185, -0.04, 0.326, 0.055, 0.38, '#27384a']
+    ]
+    for (const [x, y, z, w, h, d, c] of parts) {
+      const g = new BoxGeometry(w, h, d)
+      g.translate(x, LAWN + y + h / 2, z); g.rotateY(rotY); g.translate(cx, 0, cz)
+      this.add(g, c)
+    }
+    for (const [x, z] of [[-0.18, 0.26], [0.18, 0.26], [-0.18, -0.26], [0.18, -0.26]]) {
+      const g = new CylinderGeometry(0.065, 0.065, 0.045, 10)
+      g.rotateZ(Math.PI / 2); g.translate(x, LAWN + 0.065, z); g.rotateY(rotY); g.translate(cx, 0, cz)
+      this.add(g, '#1b1b1b')
+    }
+  }
+  parasol(cx: number, cz: number, color: string, y0 = 0) {
+    this.cyl(cx, y0, cz, 0.012, 0.42, '#e8e8e8', 5)
+    this.cone(cx, y0 + 0.38, cz, 0.24, 0.12, color, 8)
+  }
   ball(cx: number, cy: number, cz: number, r: number, color: string, sy = 1) {
     const g = new IcosahedronGeometry(r, 1)
     g.scale(1, sy, 1)

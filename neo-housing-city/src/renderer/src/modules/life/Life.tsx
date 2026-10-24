@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { buildCity } from '../city/layout'
 import { createBuildings } from '../housing/buildings'
 import { Decor } from './Decor'
+import { Leisure } from './Leisure'
 import { NightGlow } from './NightGlow'
 import { Pedestrians } from './Pedestrians'
 import { Traffic } from './Traffic'
@@ -16,6 +17,7 @@ export function Life({ data }: { data: ReturnType<typeof buildCity> }) {
       <Pedestrians centers={centers} />
       <Decor plots={data.plots} buildings={buildings} />
       <NightGlow lamps={data.lamps} />
+      <Leisure plots={data.plots} />
     </group>
   )
 }

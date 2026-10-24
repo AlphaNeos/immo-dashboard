@@ -3,6 +3,8 @@ import { Batch } from './Batch'
 import { Buildings } from '../housing/Buildings'
 import { Gallery } from '../housing/Gallery'
 import { INITIAL_BUILDINGS } from '../housing/buildings'
+import { Neighborhood } from '../housing/Neighborhood'
+import { NEIGHBORHOOD } from '../housing/neighborhood'
 import { Life } from '../life/Life'
 import { lampKey, patchLamp, windPine, windPineKey, windRound, windRoundKey } from '../life/shaders'
 import { BLOCK, HALF, POND, ROADS_X, ROADS_Z, ROAD_W, SIDEWALK_TOP, buildCity, type Item } from './layout'
@@ -208,7 +210,7 @@ function Props({ data }: { data: ReturnType<typeof buildCity> }) {
   )
 }
 
-const OCCUPIED = INITIAL_BUILDINGS.map((b) => b.plotId)
+const OCCUPIED = [...INITIAL_BUILDINGS.map((b) => b.plotId), ...NEIGHBORHOOD.map((d) => d.plotId)]
 
 export function CityWorld({ gallery = false }: { gallery?: boolean }) {
   const data = useMemo(() => buildCity(OCCUPIED), [])
@@ -220,6 +222,7 @@ export function CityWorld({ gallery = false }: { gallery?: boolean }) {
       <Urban data={data} />
       <Props data={data} />
       <Buildings plots={data.plots} />
+      <Neighborhood plots={data.plots} />
       <Life data={data} />
     </group>
   )
