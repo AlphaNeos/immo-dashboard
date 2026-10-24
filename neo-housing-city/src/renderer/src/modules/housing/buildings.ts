@@ -11,20 +11,22 @@ interface BuildingSeed {
 
 // Bâtiments présents au démarrage. Plus tard, cette liste viendra de la base de données.
 export const INITIAL_BUILDINGS: BuildingSeed[] = [
-  { id: 'bld-001', name: 'Maison classique', model: 'classic', plotId: 'plot-11' },
-  { id: 'bld-002', name: 'Maison bel étage', model: 'upper-floor', plotId: 'plot-19' },
-  { id: 'bld-003', name: 'Villa moderne', model: 'modern-villa', plotId: 'plot-04' },
+  { id: 'bld-001', name: 'Maison 4 chambres — Rue du Fisch Club 41', model: 'classic', plotId: 'plot-11' },
+  { id: 'bld-002', name: 'Maison 4 chambres — Rue de Frameries 238', model: 'upper-floor', plotId: 'plot-19' },
   {
-    id: 'bld-004',
-    name: 'Immeuble de rapport',
+    id: 'bld-003',
+    name: 'Immeuble 3 studios — Rue Antoine Clesse 27',
     model: 'apartment-block',
     plotId: 'plot-16',
     dwellings: [
-      { label: 'Appartement 1', floor: 0 },
-      { label: 'Appartement 2', floor: 1 },
-      { label: 'Appartement 3', floor: 2 }
+      { label: 'Studio 1', floor: 0 },
+      { label: 'Studio 2', floor: 1 },
+      { label: 'Studio 3', floor: 2 }
     ]
-  }
+  },
+  { id: 'bld-004', name: 'Appartement 1 chambre — Rue Émile Vandervelde 25', model: 'studio', plotId: 'plot-20' },
+  { id: 'bld-005', name: "Maison A — Avenue de l'Hôpital 43", model: 'modern-villa', plotId: 'plot-04' },
+  { id: 'bld-006', name: 'Maison B — Rue de la Joyeuse Entrée 27', model: 'classic', plotId: 'plot-08' }
 ]
 
 export function createBuildings(plots: Plot[], seeds: BuildingSeed[] = INITIAL_BUILDINGS): Building[] {

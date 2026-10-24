@@ -9,8 +9,8 @@ const { plots } = buildCity()
 describe('bâtiments', () => {
   const buildings = createBuildings(plots)
 
-  it('place 3 maisons et 1 immeuble', () => {
-    expect(buildings).toHaveLength(4)
+  it('place les 6 logements gérés, dont 1 seul immeuble', () => {
+    expect(buildings).toHaveLength(6)
     expect(buildings.filter((b) => b.model === 'apartment-block')).toHaveLength(1)
   })
   it('est cohérent (ids uniques, parcelles constructibles, positions)', () => {
@@ -18,7 +18,7 @@ describe('bâtiments', () => {
   })
   it("l'immeuble est UN bâtiment avec 3 logements distincts", () => {
     const block = buildings.find((b) => b.model === 'apartment-block')!
-    expect(block.dwellings.map((d) => d.id)).toEqual(['bld-004-u1', 'bld-004-u2', 'bld-004-u3'])
+    expect(block.dwellings.map((d) => d.id)).toEqual(['bld-003-u1', 'bld-003-u2', 'bld-003-u3'])
     expect(block.dwellings.every((d) => d.buildingId === block.id && d.externalRef === null)).toBe(true)
   })
   it('chaque maison a exactement 1 logement', () => {

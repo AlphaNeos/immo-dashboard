@@ -35,6 +35,14 @@ export const cameraStore = {
     this.goal.yaw = (Math.round((this.goal.yaw - BASE_YAW) / q) + steps) * q + BASE_YAW
     this.wake()
   },
+  // Cadre un bâtiment : léger zoom, et décalage pour qu'il reste visible à gauche de la fiche (panelPx = largeur masquée à droite).
+  focusOn(x: number, z: number, zoom = 46, panelPx = 0) {
+    this.goal.zoom = clamp(Math.max(this.goal.zoom, zoom), ZOOM_MIN, ZOOM_MAX)
+    const shift = panelPx / 2 / this.goal.zoom // en unités de la ville
+    this.goal.x = clamp(x + Math.cos(this.goal.yaw) * shift, -PAN_LIMIT, PAN_LIMIT)
+    this.goal.z = clamp(z - Math.sin(this.goal.yaw) * shift, -PAN_LIMIT, PAN_LIMIT)
+    this.wake()
+  },
   reset() {
     const q = Math.PI * 2
     this.goal.x = 0

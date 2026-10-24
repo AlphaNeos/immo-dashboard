@@ -4,6 +4,9 @@ import { cameraStore } from '@/modules/city/cameraStore'
 import { animStore, useAnimEnabled } from '@/modules/life/animStore'
 import { formatHours, nightAt } from '@/modules/life/lighting'
 import { SceneBoundary } from '@/scene/SceneBoundary'
+import { HoverTooltip } from './HoverTooltip'
+import { PortfolioBar } from './PortfolioBar'
+import { PropertyPanel } from './PropertyPanel'
 
 interface Stats { calls: number; triangles: number; geometries: number; lifeMs: number }
 
@@ -92,6 +95,9 @@ export function CityScreen({ onExit }: { onExit: () => void }) {
       <p className="hud__hint">
         Glisser : déplacer · Molette / pincement : zoom · Q / E ou Maj + glisser : tourner · WASD / flèches · R : recentrer
       </p>
+      <PortfolioBar />
+      <PropertyPanel />
+      <HoverTooltip />
       {showStats && <StatsPanel />}
     </main>
   )

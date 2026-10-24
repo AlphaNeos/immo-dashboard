@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useLayoutEffect, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import type { DirectionalLight, HemisphereLight } from 'three'
+import { Vector3, type DirectionalLight, type HemisphereLight } from 'three'
 import { animStore } from '../life/animStore'
 import { lightingAt } from '../life/lighting'
 import { nightUniform } from '../life/shaders'
@@ -69,7 +69,14 @@ function Lighting({ refresh }: { refresh: unknown }) {
 // Statistiques de rendu lisibles par l'interface (touche F3) et par les tests.
 function StatsProbe() {
   const gl = useThree((s) => s.gl)
+  const camera = useThree((s) => s.camera)
   useEffect(() => {
+    // utilitaire de test : position écran (pixels) d'un point du monde
+    ;(window as unknown as { __neoProject?: unknown }).__neoProject = (x: number, y: number, z: number) => {
+      const v = new Vector3(x, y, z).project(camera)
+      const r = gl.domElement.getBoundingClientRect()
+      return [r.left + ((v.x + 1) / 2) * r.width, r.top + ((1 - v.y) / 2) * r.height]
+    }
     const w = window as unknown as { __neoStats?: () => unknown }
     w.__neoStats = () => ({
       calls: gl.info.render.calls,
@@ -79,7 +86,7 @@ function StatsProbe() {
       lifeMs: lifeMs()
     })
     return () => { delete w.__neoStats }
-  }, [gl])
+  }, [gl, camera])
   return null
 }
 
