@@ -7,17 +7,23 @@ import { createBuildings } from './buildings'
 import { Pin } from './Pins'
 import { propertyStore, useProperties } from './propertyStore'
 import { selection, useSelection } from './selection'
+import { Coins } from '../game/Coins'
+import { Crown } from '../game/Crown'
+import { useSimPreview, withPreview } from '../game/simulate'
+import { finance } from './properties'
+import { PIN_Y } from './Pins'
 
 const PANEL_PX = 400 // largeur de la fiche (le bâtiment est recentré dans l'espace restant)
 
 export function Buildings({ plots }: { plots: Plot[] }) {
   const buildings = useMemo(() => createBuildings(plots), [plots])
   const properties = useProperties()
+  const preview = useSimPreview()
   const { hoveredId, selectedId } = useSelection()
   const invalidate = useThree((s) => s.invalidate)
 
   // Un changement de survol / sélection / fiche redessine la scène.
-  useEffect(() => { invalidate() }, [hoveredId, selectedId, properties, invalidate])
+  useEffect(() => { invalidate() }, [hoveredId, selectedId, properties, preview, invalidate])
 
   // Cadrage de la caméra quand un bâtiment est sélectionné.
   useEffect(() => {
@@ -28,11 +34,19 @@ export function Buildings({ plots }: { plots: Plot[] }) {
     return () => { selection.onSelect = null }
   }, [buildings])
 
+  // le logement qui rapporte le plus porte la couronne
+  const top = [...properties].sort((a, b) => finance(b).margin - finance(a).margin)[0]
+  const topB = buildings.find((b) => b.id === top?.buildingId)
+  const topPlot = topB && plots.find((p) => p.id === topB.plotId)
+
   return (
     <group>
+      <Coins buildings={buildings} plots={plots} props={properties.map((p) => withPreview(p, preview))} />
+      {topB && topPlot && <Crown x={topB.position.x} y={topPlot.top + PIN_Y[topB.model] + 0.15 + 0.95} z={topB.position.z} />}
       {buildings.map((b) => {
         const plot = plots.find((p) => p.id === b.plotId)!
-        const prop = propertyStore.get(b.id)
+        const base = propertyStore.get(b.id)
+        const prop = base && withPreview(base, preview)
         const hovered = hoveredId === b.id
         const selected = selectedId === b.id
         const pick = () => { selection.select(b.id); selection.onSelect?.(b.id) }

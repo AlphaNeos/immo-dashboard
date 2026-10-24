@@ -6,7 +6,7 @@ import { HEALTH_COLORS, health, type Property } from './properties'
 import type { Building, BuildingModelId } from './types'
 
 // Hauteur du repère au-dessus de chaque modèle.
-const PIN_Y: Record<BuildingModelId, number> = {
+export const PIN_Y: Record<BuildingModelId, number> = {
   classic: 1.75, 'upper-floor': 1.95, 'modern-villa': 1.5, 'apartment-block': 2.7, studio: 1.2, renovation: 1.75
 }
 

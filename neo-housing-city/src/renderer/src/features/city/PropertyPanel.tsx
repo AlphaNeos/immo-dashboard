@@ -6,6 +6,7 @@ import {
 } from '@/modules/housing/properties'
 import { propertyStore, useProperties } from '@/modules/housing/propertyStore'
 import { selection, useSelection } from '@/modules/housing/selection'
+import { WhatIf } from './WhatIf'
 
 const TODO = <em className="fiche__todo">À renseigner</em>
 
@@ -187,6 +188,7 @@ export function PropertyPanel() {
         {editing ? <EditForm p={p} onDone={() => setEditing(false)} /> : (
           <>
             <Figures p={p} />
+            <WhatIf p={p} />
             <section className="fiche__block">
               <h3>Informations</h3>
               <div className="fiche__rows">

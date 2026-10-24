@@ -29,6 +29,7 @@ Stack : Electron + React + TypeScript + Vite + Three.js / React Three Fiber / Dr
 | Recentrer | R ou bouton ⌂ |
 | Statistiques de rendu | F3 |
 | Vitrine des 6 modèles de bâtiments | F4 |
+| Visite guidée des logements | bouton « Visite guidée » (Échap pour arrêter) |
 | Animations ON / OFF | bouton « Animations » ou touche P |
 
 ## Architecture
@@ -40,5 +41,6 @@ Stack : Electron + React + TypeScript + Vite + Three.js / React Three Fiber / Dr
 - `src/renderer/src/modules/city/` : la ville 3D (`layout.ts` = plan de la ville, `CityWorld.tsx` = objets 3D, `CameraRig.tsx` = caméra)
 - `src/renderer/src/modules/housing/` : bâtiments (`types.ts` = modèle de données, `buildings.ts` = liste et contrôles, `models/` = les 6 modèles 3D)
 - `src/renderer/src/modules/life/` : ville vivante (`traffic.ts` circulation, `pedestrians.ts` piétons, `lighting.ts` jour/nuit, `Decor.tsx` fontaine/fumée/oiseaux)
+- `src/renderer/src/modules/game/` : le jeu (`progress.ts` niveaux, trophées, objectifs, classement ; `simulate.ts` simulateur « Et si… » ; `celebrate.ts` célébrations ; `tour.ts` visite guidée)
 - `src/renderer/src/modules/` : futures fonctionnalités (ville, logements, finances...)
 - `src/renderer/src/core/` : types et utilitaires partagés
