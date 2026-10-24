@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { CityScene } from '@/modules/city/CityScene'
 import { cameraStore } from '@/modules/city/cameraStore'
 import { animStore, useAnimEnabled } from '@/modules/life/animStore'
-import { formatHours, nightAt } from '@/modules/life/lighting'
 import { SceneBoundary } from '@/scene/SceneBoundary'
 import { HoverTooltip } from './HoverTooltip'
 import { PortfolioBar } from './PortfolioBar'
@@ -21,30 +20,6 @@ function StatsPanel() {
     <div className="hud__stats">
       {s.calls} appels graphiques · {(s.triangles / 1000).toFixed(1)}k triangles · animations {s.lifeMs.toFixed(2)} ms/image
     </div>
-  )
-}
-
-function TimeControl() {
-  const [hours, setHours] = useState(animStore.hours)
-  useEffect(() => {
-    const id = setInterval(() => setHours(animStore.hours), 250)
-    return () => clearInterval(id)
-  }, [])
-  const night = nightAt(hours) > 0.5
-  return (
-    <label className="hud__time" title="Heure de la journée">
-      <button
-        type="button" className="hud__daynight" title={night ? 'Passer en plein jour' : 'Passer en pleine nuit'}
-        onClick={() => { const h = night ? 11 : 22.5; setHours(h); animStore.setHours(h) }}
-      >
-        {night ? '☀ Jour' : '☾ Nuit'}
-      </button>
-      <input
-        type="range" min={0} max={24} step={0.1} value={hours}
-        onChange={(e) => { setHours(+e.target.value); animStore.setHours(+e.target.value) }}
-      />
-      <b>{formatHours(hours)}</b>
-    </label>
   )
 }
 
@@ -81,7 +56,6 @@ export function CityScreen({ onExit }: { onExit: () => void }) {
         <button title="Zoom + (+)" onClick={() => cameraStore.zoomBy(1.25)}>+</button>
         <button title="Zoom − (-)" onClick={() => cameraStore.zoomBy(0.8)}>−</button>
         <span className="hud__sep" />
-        <TimeControl />
         <button
           className={animOn ? 'hud__toggle is-on' : 'hud__toggle'} aria-pressed={animOn}
           title="Activer / désactiver les animations (P)" onClick={() => animStore.setEnabled(!animOn)}

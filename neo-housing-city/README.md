@@ -30,7 +30,6 @@ Stack : Electron + React + TypeScript + Vite + Three.js / React Three Fiber / Dr
 | Statistiques de rendu | F3 |
 | Vitrine des 6 modèles de bâtiments | F4 |
 | Animations ON / OFF | bouton « Animations » ou touche P |
-| Heure de la journée (jour / nuit) | curseur en bas à droite |
 
 ## Architecture
 - `src/main/` : processus principal Electron (fenêtre, système)

@@ -10,10 +10,11 @@ function load(): boolean {
 let state = { enabled: load() }
 const listeners = new Set<() => void>()
 
-export const HOURS_PER_SECOND = 24 / 120 // une journée complète = 2 minutes (la nuit tombe ~50 s après le lancement)
+// La ville reste en plein jour : l'heure est fixe (11 h) et ne change jamais.
+export const DAY_HOURS = 11
 
 export const animStore = {
-  hours: 9.5,
+  hours: DAY_HOURS,
   wake: (() => {}) as () => void,
   get enabled() { return state.enabled },
   subscribe(l: () => void) { listeners.add(l); return () => { listeners.delete(l) } },
@@ -21,10 +22,6 @@ export const animStore = {
     state = { enabled: v }
     try { localStorage.setItem(KEY, v ? 'on' : 'off') } catch { /* stockage indisponible : sans importance */ }
     listeners.forEach((l) => l())
-    this.wake()
-  },
-  setHours(h: number) {
-    this.hours = ((h % 24) + 24) % 24
     this.wake()
   }
 }

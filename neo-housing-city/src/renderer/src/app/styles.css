@@ -77,12 +77,8 @@ body {
   color: #e8f4ff; background: rgba(10,18,36,0.7); padding: 6px 10px; border-radius: 8px;
 }
 
-.hud__time { display: flex; align-items: center; gap: 6px; color: #e8f4ff; font-size: 12px; padding: 0 4px; }
-.hud__time input { width: 110px; accent-color: #3de0ff; }
-.hud__time b { font: 600 12px ui-monospace, Menlo, monospace; min-width: 38px; }
 .hud__controls .hud__toggle { width: auto; padding: 0 12px; font-size: 12px; letter-spacing: 0.04em; }
 .hud__controls .hud__toggle.is-on { background: rgba(61,224,255,0.28); }
-.hud__controls .hud__daynight { width: auto; height: 28px; padding: 0 10px; font-size: 12px; background: rgba(255,255,255,0.14); }
 .hud__title--web { padding-left: 16px; }
 
 /* ---- Bandeau portefeuille ---- */
@@ -92,7 +88,7 @@ body {
 }
 .portfolio div { display: flex; flex-direction: column; gap: 1px; }
 .portfolio small { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: #8fa8c4; }
-.portfolio b { font: 600 14px ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; }
+.portfolio b { font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; }
 .portfolio .portfolio__m { color: #35d07f; }
 .portfolio em { font-size: 10px; font-style: normal; color: #8fa8c4; }
 
@@ -128,7 +124,7 @@ body {
 .fiche__figures { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
 .fiche__figures > div { background: rgba(255,255,255,0.06); border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; border: 1px solid transparent; }
 .fiche__figures small { font-size: 10px; color: #8fa8c4; }
-.fiche__figures strong { font: 600 16px ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; }
+.fiche__figures strong { font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums; }
 .fiche__figures .fiche__margin { grid-column: 1 / -1; }
 .fiche__margin strong { font-size: 22px; }
 .fiche__margin span { font-size: 11px; color: #9fb6cf; }
@@ -163,3 +159,7 @@ body {
 /* la fiche ouverte pousse les boutons de caméra à sa gauche */
 .city:has(.fiche) .hud__controls { right: 408px; }
 .city:has(.fiche) .hud__stats { right: 408px; }
+
+/* Police Arial classique pour tout ce qui concerne les logements (chiffres compris) */
+.fiche, .tip, .portfolio { font-family: Arial, Helvetica, sans-serif; }
+.fiche input, .fiche select, .fiche button { font-family: inherit; }
