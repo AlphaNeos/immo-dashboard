@@ -11,7 +11,8 @@
     "start": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "package:mac": "electron-vite build && electron-builder --mac",
-    "test": "vitest run"
+    "test": "vitest run",
+    "preview:web": "vite build -c vite.web.config.ts && node scripts/make-web-preview.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

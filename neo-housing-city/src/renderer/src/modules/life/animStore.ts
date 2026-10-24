@@ -10,7 +10,7 @@ function load(): boolean {
 let state = { enabled: load() }
 const listeners = new Set<() => void>()
 
-export const HOURS_PER_SECOND = 24 / 150 // une journée complète = 2 min 30 s
+export const HOURS_PER_SECOND = 24 / 120 // une journée complète = 2 minutes (la nuit tombe ~50 s après le lancement)
 
 export const animStore = {
   hours: 9.5,

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { HOURS_PER_SECOND, animStore, useAnimEnabled } from './animStore'
 import { windUniform } from './shaders'
@@ -8,19 +8,23 @@ import { windUniform } from './shaders'
 export function Ticker() {
   const invalidate = useThree((s) => s.invalidate)
   const enabled = useAnimEnabled()
+  const last = useRef(performance.now())
 
   useEffect(() => {
     animStore.wake = invalidate
     return () => { animStore.wake = () => {} }
   }, [invalidate])
 
-  useEffect(() => { if (enabled) invalidate() }, [enabled, invalidate])
+  useEffect(() => { last.current = performance.now(); if (enabled) invalidate() }, [enabled, invalidate])
 
   useFrame((_, dt) => {
     if (!animStore.enabled) return
-    const d = Math.min(dt, 0.05)
-    animStore.hours = (animStore.hours + d * HOURS_PER_SECOND) % 24
-    windUniform.value += d
+    // L'heure suit le temps réel (même si l'affichage ralentit) ; seules les simulations utilisent un pas plafonné.
+    const now = performance.now()
+    const real = Math.min((now - last.current) / 1000, 1)
+    last.current = now
+    animStore.hours = (animStore.hours + real * HOURS_PER_SECOND) % 24
+    windUniform.value += Math.min(dt, 0.05)
     setTimeout(invalidate, 12)
   })
   return null

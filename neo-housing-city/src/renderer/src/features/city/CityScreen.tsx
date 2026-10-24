@@ -30,7 +30,12 @@ function TimeControl() {
   const night = nightAt(hours) > 0.5
   return (
     <label className="hud__time" title="Heure de la journée">
-      <span aria-hidden>{night ? '☾' : '☀'}</span>
+      <button
+        type="button" className="hud__daynight" title={night ? 'Passer en plein jour' : 'Passer en pleine nuit'}
+        onClick={() => { const h = night ? 11 : 22.5; setHours(h); animStore.setHours(h) }}
+      >
+        {night ? '☀ Jour' : '☾ Nuit'}
+      </button>
       <input
         type="range" min={0} max={24} step={0.1} value={hours}
         onChange={(e) => { setHours(+e.target.value); animStore.setHours(+e.target.value) }}
@@ -61,7 +66,7 @@ export function CityScreen({ onExit }: { onExit: () => void }) {
         <CityScene gallery={gallery} />
       </SceneBoundary>
 
-      <header className="hud__title">
+      <header className={window.neo ? 'hud__title' : 'hud__title hud__title--web'}>
         <span className="hud__logo">NEO <b>HOUSING</b> CITY</span>
         <button className="hud__link" onClick={onExit}>Accueil</button>
       </header>

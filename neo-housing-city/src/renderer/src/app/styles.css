@@ -82,3 +82,5 @@ body {
 .hud__time b { font: 600 12px ui-monospace, Menlo, monospace; min-width: 38px; }
 .hud__controls .hud__toggle { width: auto; padding: 0 12px; font-size: 12px; letter-spacing: 0.04em; }
 .hud__controls .hud__toggle.is-on { background: rgba(61,224,255,0.28); }
+.hud__controls .hud__daynight { width: auto; height: 28px; padding: 0 10px; font-size: 12px; background: rgba(255,255,255,0.14); }
+.hud__title--web { padding-left: 16px; }
