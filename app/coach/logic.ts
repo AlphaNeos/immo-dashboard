@@ -2,7 +2,7 @@
 
 export const WATER_GOAL = 2000
 export const OFFICE_GOAL = 240 // min
-export const WALK_GOAL = 40 // min
+export const STEPS_GOAL = 5000 // pas/jour (on monte doucement plus tard)
 export const PROTEIN_GOAL = 120 // g
 export const WEEKLY = { padel: 2, kine: 2, renfo: 1 } as const
 export const STORAGE_KEY = 'coach-perso-v2'
@@ -39,7 +39,7 @@ export type Day = {
   protein: number
   done: Record<string, boolean>
   officeMin: number
-  walkMin: number
+  steps: number
   padel: boolean
   kine: boolean
   renfo: boolean
@@ -81,7 +81,7 @@ export const fmtH = (min: number) => `${Math.floor(min / 60)}h${String(min % 60)
 
 // ───── Defaults / migration ─────
 export const emptyDay = (): Day => ({
-  water: 0, protein: 0, done: {}, officeMin: 0, walkMin: 0,
+  water: 0, protein: 0, done: {}, officeMin: 0, steps: 0,
   padel: false, kine: false, renfo: false, cravings: [], mood: 0, feedback: '', closed: false,
 })
 
@@ -166,7 +166,7 @@ export function dayScore(d: Day, tasks: Task[]) {
   for (const t of tasks) if (d.done[t.id]) pts += t.points
   pts += Math.round(Math.min(d.water / WATER_GOAL, 1) * 20)
   pts += Math.round(Math.min(d.officeMin / OFFICE_GOAL, 1) * 20)
-  pts += Math.round(Math.min(d.walkMin / WALK_GOAL, 1) * 15)
+  pts += Math.round(Math.min(d.steps / STEPS_GOAL, 1) * 15)
   pts += Math.round(Math.min(d.protein / PROTEIN_GOAL, 1) * 15)
   if (d.padel) pts += 25
   if (d.kine) pts += 15
@@ -217,8 +217,8 @@ export function coachAdvice(date: string, store: Store): string[] {
   if (d.officeMin < OFFICE_GOAL * 0.5) {
     out.push('🏢 Bureau court : bloc 1 à midi (jusqu’à la crèche), bloc 2 après la crèche. Fixe une heure de fin de bloc plutôt qu’une durée.')
   }
-  if (d.walkMin < WALK_GOAL) {
-    out.push('🚶 Marche : colle-la à un moment fixe (après le déjeuner, trajet crèche à pied). En cas de froid : tapis/pas sur place devant une série comptent.')
+  if (d.steps < STEPS_GOAL) {
+    out.push('🚶 Pas : 5000 c’est l’objectif, pas plus pour l’instant. Colle-les à des moments fixes (trajet crèche à pied, 10 min après le repas). Froid : marcher sur place devant une série compte aussi.')
   }
   const crav = n(x => x.cravings.some(c => c.type === 'sucre' || c.type === 'gras'))
   if (d.cravings.filter(c => c.type !== 'plaisir').length >= 2 || crav >= 3) {
@@ -249,7 +249,7 @@ export function reportText(date: string, store: Store) {
   ;(d.water >= WATER_GOAL ? ok : ko).push(`Eau ${(d.water / 1000).toFixed(2)} L / 2 L`)
   ;(d.protein >= PROTEIN_GOAL ? ok : ko).push(`Protéines ${d.protein} g / ${PROTEIN_GOAL} g`)
   ;(d.officeMin >= OFFICE_GOAL ? ok : ko).push(`Bureau ${fmtH(d.officeMin)} / 4h`)
-  ;(d.walkMin >= WALK_GOAL ? ok : ko).push(`Marche ${d.walkMin} / ${WALK_GOAL} min`)
+  ;(d.steps >= STEPS_GOAL ? ok : ko).push(`Pas ${d.steps} / ${STEPS_GOAL}`)
   if (d.padel) ok.push('Padel')
   if (d.kine) ok.push('Kiné')
   if (d.renfo) ok.push('Renfo jambes')

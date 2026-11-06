@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  OFFICE_GOAL, PROTEIN_GOAL, STORAGE_KEY, WALK_GOAL, WATER_GOAL, WEEKLY,
+  OFFICE_GOAL, PROTEIN_GOAL, STORAGE_KEY, STEPS_GOAL, WATER_GOAL, WEEKLY,
   addDays, coachAdvice, currentWeight, emptyDay, eff, fmtClock, fmtH, migrate,
   reportText, scoreOn, sleepFor, suppMinutes, tasksFor, weekCount, ymd,
   type Day, type Store,
@@ -88,6 +88,7 @@ export default function CoachPage() {
   const [cNote, setCNote] = useState('')
   const [copied, setCopied] = useState(false)
   const [wInput, setWInput] = useState('')
+  const [stepsInput, setStepsInput] = useState('')
   const [suppName, setSuppName] = useState('')
   const [suppTime, setSuppTime] = useState('09:00')
   const [suppAnchor, setSuppAnchor] = useState<'fixed' | 'wake' | 'bed'>('wake')
@@ -254,12 +255,22 @@ export default function CoachPage() {
 
       {/* Sport */}
       <Card title="🏃 Mouvement">
-        <div className="mb-1 flex justify-between text-sm"><span>🚶 Marche</span><b>{day.walkMin} / {WALK_GOAL} min</b></div>
-        <Bar pct={(day.walkMin / WALK_GOAL) * 100} color="var(--green)" />
+        <div className="mb-1 flex justify-between text-sm"><span>🚶 Pas</span><b>{day.steps.toLocaleString('fr-FR')} / {STEPS_GOAL.toLocaleString('fr-FR')}</b></div>
+        <Bar pct={(day.steps / STEPS_GOAL) * 100} color="var(--green)" />
         <div className="mt-3 flex flex-wrap gap-2">
-          {[10, 20, 30].map(m => <button key={m} className={btn} onClick={() => update(d => ({ ...d, walkMin: d.walkMin + m }))}>+{m} min</button>)}
-          <button className={btn} onClick={() => update(d => ({ ...d, walkMin: Math.max(0, d.walkMin - 10) }))}>−10</button>
+          {[500, 1000, 2000].map(n => <button key={n} className={btn} onClick={() => update(d => ({ ...d, steps: d.steps + n }))}>+{n}</button>)}
+          <button className={btn} onClick={() => update(d => ({ ...d, steps: Math.max(0, d.steps - 500) }))}>−500</button>
         </div>
+        <form className="mt-2 flex gap-2" onSubmit={e => {
+          e.preventDefault()
+          const v = parseInt(stepsInput.replace(/\s/g, ''))
+          if (Number.isNaN(v) || v < 0 || v > 100000) return
+          update(d => ({ ...d, steps: v }))
+          setStepsInput('')
+        }}>
+          <input className={input + ' flex-1'} inputMode="numeric" placeholder="Total du téléphone (ex : 3200)" value={stepsInput} onChange={e => setStepsInput(e.target.value)} />
+          <button className={btn} type="submit">Définir</button>
+        </form>
         <div className="mt-3 space-y-2">
           {([
             ['padel', '🎾 Padel', WEEKLY.padel, '+25'],
