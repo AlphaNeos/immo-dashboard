@@ -55,7 +55,7 @@ const input = 'min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surfac
 function Check({ checked, onChange, children, right }: { checked: boolean; onChange: (v: boolean) => void; children: React.ReactNode; right?: React.ReactNode }) {
   return (
     <label className="flex cursor-pointer items-center gap-3 rounded-xl bg-[var(--surface)] p-3">
-      <input type="checkbox" className="h-5 w-5 shrink-0 accent-[var(--violet)]" checked={checked} onChange={e => onChange(e.target.checked)} />
+      <input type="checkbox" className="chk" checked={checked} onChange={e => onChange(e.target.checked)} />
       <span className={`flex-1 ${checked ? 'line-through opacity-50' : ''}`}>{children}</span>
       {right}
     </label>
@@ -225,6 +225,7 @@ export default function CoachPage() {
             <p className="text-xs text-[var(--muted)]">
               {new Date(date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
               {isToday && ` · ${hhmm}`}
+              {isToday && now.getHours() < 6 && ' · jour en cours jusqu’à 06:00'}
             </p>
           </div>
           <div className="flex gap-1">
@@ -248,17 +249,12 @@ export default function CoachPage() {
 
       {isToday && (overdue.length > 0 || nextTask) && (
         <div className="rounded-2xl border border-[var(--violet)] bg-[var(--violet-dim)] p-3 text-sm">
-          {overdue.length > 0 && <div>⏳ En retard : {overdue.map(t => `${t.emoji} ${t.label}`).join(' · ')}</div>}
+          {overdue.length > 0 && <div>⏳ En retard : {overdue.slice(-3).map(t => `${t.emoji} ${t.label}`).join(' · ')}{overdue.length > 3 && <span className="text-[var(--muted)]"> · +{overdue.length - 3} autres</span>}</div>}
           {nextTask && <div className="text-[var(--muted)]">Prochain : {nextTask.emoji} {nextTask.label} à {fmtClock(nextTask.min)}</div>}
         </div>
       )}
-      {notif === 'default' && (
-        <button className={btn + ' w-full'} onClick={async () => setNotif(await Notification.requestPermission())}>
-          🔔 Activer les rappels (garde cet onglet ouvert)
-        </button>
-      )}
 
-      <Card title="🌙 Plan sommeil progressif" right={<span className="text-xs text-[var(--muted)]">{sl.done ? 'objectif atteint 🎉' : `prochain cran dans ${sl.nextIn} j`}</span>}>
+      <Card title="🌙 Plan sommeil progressif" right={<span className="shrink-0 whitespace-nowrap text-xs text-[var(--muted)]">{sl.done ? 'objectif atteint 🎉' : `cran suivant : ${sl.nextIn} j`}</span>}>
         <div className="grid grid-cols-2 gap-2 text-center">
           <div className="rounded-xl bg-[var(--surface)] p-3"><div className="text-xs text-[var(--muted)]">Lever</div><div className="text-2xl font-bold">{fmtClock(sl.wake)}</div></div>
           <div className="rounded-xl bg-[var(--surface)] p-3"><div className="text-xs text-[var(--muted)]">Coucher</div><div className="text-2xl font-bold">{fmtClock(sl.bed)}</div></div>
@@ -379,7 +375,7 @@ export default function CoachPage() {
       <Card title="⚖️ Poids" right={<span className="text-sm font-bold">{cw} kg → {S.goalWeight}</span>}>
         <Bar pct={((S.startWeight - cw) / (S.startWeight - S.goalWeight)) * 100} color="var(--violet)" />
         <p className="mt-2 text-xs text-[var(--muted)]">
-          {lost >= 0 ? `−${lost.toFixed(1)} kg depuis le début` : `+${(-lost).toFixed(1)} kg depuis le début`} · à −0,5 kg/sem. ≈ {weeksLeft} semaines restantes. Pèse-toi 1 fois/semaine, même jour, au réveil.
+          {Math.abs(lost) < 0.05 ? 'Poids de départ' : lost > 0 ? `−${lost.toFixed(1)} kg depuis le début` : `+${(-lost).toFixed(1)} kg depuis le début`} · à −0,5 kg/sem. ≈ {weeksLeft} semaines restantes. Pèse-toi 1 fois/semaine, même jour, au réveil.
         </p>
         <div className="mt-3"><WeightChart store={store} /></div>
         <form className="mt-3 flex gap-2" onSubmit={e => {
@@ -445,7 +441,7 @@ export default function CoachPage() {
       )}
       {tab === 'reglages' && (
         <>
-      <Card title="⚙️ Réglages — compléments">
+      <Card title="💊 Compléments">
         <ul className="mb-3 space-y-2">
           {S.supplements.map(sp => (
             <li key={sp.id} className="flex items-center justify-between rounded-xl bg-[var(--surface)] px-3 py-2 text-sm">

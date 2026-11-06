@@ -61,3 +61,8 @@ button { cursor: pointer; background: transparent; }
 button, input, textarea { border: 0 solid var(--border); }
 button:disabled { opacity: .4; cursor: default; }
 ul { list-style: none; }
+
+/* Coach : cases à cocher lisibles (iOS affiche des carrés noirs sinon) */
+.chk { appearance: none; -webkit-appearance: none; width: 22px; height: 22px; flex-shrink: 0; border: 2px solid var(--muted); border-radius: 7px; background: transparent; display: grid; place-content: center; }
+.chk:checked { background: var(--violet); border-color: var(--violet); }
+.chk:checked::after { content: ""; width: 6px; height: 11px; border: solid #fff; border-width: 0 2.5px 2.5px 0; transform: translateY(-1px) rotate(45deg); }
