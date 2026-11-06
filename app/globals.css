@@ -1,4 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import "tailwindcss/theme" layer(theme);
+@import "tailwindcss/utilities";
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -51,3 +53,11 @@ body {
   animation: shimmer 1.4s infinite;
   border-radius: 8px;
 }
+
+
+/* Coach : reset minimal des contrôles de formulaire */
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; background: transparent; }
+button, input, textarea { border: 0 solid var(--border); }
+button:disabled { opacity: .4; cursor: default; }
+ul { list-style: none; }
