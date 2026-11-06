@@ -294,3 +294,34 @@ export function weekSummary(date: string, store: Store) {
     weightDelta: startW !== undefined && endW !== undefined ? Math.round((endW - startW) * 10) / 10 : undefined,
   }
 }
+
+
+// ───── Export agenda (.ics) : rappels natifs sur téléphone, sans serveur ─────
+const icsEsc = (t: string) => t.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n')
+
+export function buildIcs(store: Store, startDate: string, nDays: number) {
+  const L: string[] = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Mon Coach//FR', 'CALSCALE:GREGORIAN', 'X-WR-CALNAME:Mon Coach']
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z'
+  const add = (uid: string, date: string, min: number, label: string) => {
+    const e = eff(min)
+    const day = e >= 1440 ? addDays(date, 1) : date
+    const hhmm = fmtClock(min).replace(':', '')
+    const dt = day.replace(/-/g, '') + 'T' + hhmm + '00'
+    const endMin = fmtClock(min + 10).replace(':', '')
+    const endDay = (e + 10) >= 1440 && e < 1440 ? addDays(day, 1) : day
+    L.push('BEGIN:VEVENT', `UID:${uid}@mon-coach`, `DTSTAMP:${stamp}`, `DTSTART:${dt}`, `DTEND:${endDay.replace(/-/g, '')}T${endMin}00`,
+      `SUMMARY:${icsEsc(label)}`, 'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${icsEsc(label)}`, 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT')
+  }
+  for (let i = 0; i < nDays; i++) {
+    const date = addDays(startDate, i)
+    const sl = sleepFor(date, store.settings.sleep)
+    for (const t of tasksFor(date, store)) {
+      if (t.id === 'cheville' && i % 2 === 1) continue
+      add(`${date}-${t.id}`, date, t.min, `${t.emoji} ${t.label}`)
+    }
+    ;[sl.wake + 30, 14 * 60 + 30, 17 * 60 + 30, 19 * 60 + 30].forEach((m, k) => add(`${date}-eau${k}`, date, m, '💧 Un grand verre d’eau'))
+    add(`${date}-bilan`, date, sl.bed - 120, '📋 Bilan du soir : ouvre ton coach')
+  }
+  L.push('END:VCALENDAR')
+  return L.join('\r\n')
+}

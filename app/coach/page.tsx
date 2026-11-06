@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   OFFICE_GOAL, PROTEIN_GOAL, STORAGE_KEY, STEPS_GOAL, WATER_GOAL, WEEKLY,
   addDays, coachAdvice, logicalDay, migrate as migrateStore, weekSummary, currentWeight, emptyDay, eff, fmtClock, fmtH, migrate,
-  reportText, scoreOn, sleepFor, suppMinutes, tasksFor, weekCount,
+  buildIcs, reportText, scoreOn, sleepFor, suppMinutes, tasksFor, weekCount,
   type Day, type Store,
 } from './logic'
 
@@ -425,6 +425,7 @@ export default function CoachPage() {
         <p className="mt-2 text-xs text-[var(--muted)]">Les heures suivent ton plan sommeil (ex : « avant le coucher, 75 min »). Respecte les doses de l’étiquette ou de ton pharmacien.</p>
       </Card>
 
+      <RemindersCard store={store} notif={notif} onEnable={async () => setNotif(await Notification.requestPermission())} />
       <BackupCard store={store} onImport={s => setStore(s)} />
     </main>
   )
@@ -487,6 +488,39 @@ function BackupCard({ store, onImport }: { store: Store; onImport: (s: Store) =>
         </label>
       </div>
       {msg && <p className="mt-2 text-sm">{msg}</p>}
+    </Card>
+  )
+}
+
+function RemindersCard({ store, notif, onEnable }: { store: Store; notif: string; onEnable: () => void }) {
+  const [days, setDays] = useState('21')
+  const exportIcs = () => {
+    const n = Math.max(3, Math.min(60, parseInt(days) || 21))
+    const blob = new Blob([buildIcs(store, logicalDay(), n)], { type: 'text/calendar' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = 'mon-coach-rappels.ics'
+    a.click()
+    URL.revokeObjectURL(a.href)
+  }
+  return (
+    <Card title="🔔 Rappels">
+      <p className="mb-3 text-sm text-[var(--muted)]">
+        <b className="text-white">Sur téléphone (recommandé) :</b> exporte les rappels vers ton agenda. Ils sonnent même app fermée, avec les heures de ton plan sommeil qui avance.
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <input className={input + ' w-16'} inputMode="numeric" value={days} onChange={e => setDays(e.target.value)} aria-label="jours" />
+        <span className="text-sm text-[var(--muted)]">prochains jours</span>
+        <button className={btn} onClick={exportIcs}>📅 Exporter (.ics)</button>
+      </div>
+      <p className="mt-2 text-xs text-[var(--muted)]">Ouvre le fichier avec ton agenda (Google Agenda / Apple Calendrier). Refais l’export tous les ~3 semaines ou si tu changes tes compléments.</p>
+      <div className="mt-4 border-t border-[var(--border)] pt-3 text-sm">
+        <b>Sur PC :</b>{' '}
+        {notif === 'granted' ? <span className="text-[var(--green)]">notifications activées ✓ (garde l’onglet ouvert)</span>
+          : notif === 'denied' ? <span className="text-[var(--amber)]">bloquées : autorise-les dans les réglages du site (cadenas dans la barre d’adresse)</span>
+          : notif === 'unsupported' ? <span className="text-[var(--muted)]">non disponibles ici (HTTP sur téléphone)</span>
+          : <button className={btn} onClick={onEnable}>Activer les notifications</button>}
+      </div>
     </Card>
   )
 }
