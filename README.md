@@ -34,3 +34,15 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+---
+
+## Mon Coach (`/coach`)
+
+App perso de routine (sommeil progressif, eau, protéines, pas, sport, compléments, poids, bilan du soir). Données **uniquement dans le navigateur** (localStorage), aucun serveur.
+
+- PC : `npm run dev` puis http://localhost:3000/coach
+- Téléphone (même Wi-Fi) : `npm run coach`, puis ouvrir `http://<IP-du-PC>:3000/coach` et « Ajouter à l'écran d'accueil ».
+- Sauvegarde : carte « Sauvegarde » en bas de page (export / import `.json`).
+- Pas automatiques : un raccourci du téléphone peut ouvrir `/coach?steps=4200`.
+- Le « jour » change à 06:00 (pas à minuit). Code : `app/coach/logic.ts` (règles) et `app/coach/page.tsx` (écran).

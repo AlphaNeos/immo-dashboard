@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   OFFICE_GOAL, PROTEIN_GOAL, STORAGE_KEY, STEPS_GOAL, WATER_GOAL, WEEKLY,
-  addDays, coachAdvice, currentWeight, emptyDay, eff, fmtClock, fmtH, migrate,
-  reportText, scoreOn, sleepFor, suppMinutes, tasksFor, weekCount, ymd,
+  addDays, coachAdvice, logicalDay, migrate as migrateStore, weekSummary, currentWeight, emptyDay, eff, fmtClock, fmtH, migrate,
+  reportText, scoreOn, sleepFor, suppMinutes, tasksFor, weekCount,
   type Day, type Store,
 } from './logic'
 
@@ -83,7 +83,7 @@ function WeightChart({ store }: { store: Store }) {
 // ───────────────────────── Page ─────────────────────────
 export default function CoachPage() {
   const [store, setStore] = useStore()
-  const [date, setDate] = useState(() => ymd())
+  const [date, setDate] = useState(() => logicalDay())
   const [now, setNow] = useState(() => new Date())
   const [cNote, setCNote] = useState('')
   const [copied, setCopied] = useState(false)
@@ -101,7 +101,7 @@ export default function CoachPage() {
     return () => clearInterval(id)
   }, [])
 
-  const today = ymd(now)
+  const today = logicalDay(now)
 
   // Import automatique : /coach?steps=4200 (raccourci iPhone / Tasker) règle les pas d'aujourd'hui
   const imported = useRef(false)
@@ -111,9 +111,17 @@ export default function CoachPage() {
     const v = parseInt(new URLSearchParams(window.location.search).get('steps') ?? '')
     if (Number.isNaN(v) || v < 0 || v > 100000) return
      
-    setStore(st => (st ? { ...st, days: { ...st.days, [ymd()]: { ...(st.days[ymd()] ?? emptyDay()), steps: v } } } : st))
+    setStore(st => (st ? { ...st, days: { ...st.days, [logicalDay()]: { ...(st.days[logicalDay()] ?? emptyDay()), steps: v } } } : st))
     window.history.replaceState(null, '', window.location.pathname)
   }, [store, setStore])
+  const prevToday = useRef(today)
+  useEffect(() => {
+    if (prevToday.current !== today) {
+       
+      setDate(d => (d === prevToday.current ? today : d))
+      prevToday.current = today
+    }
+  }, [today])
   const isToday = date === today
   const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
 
@@ -354,6 +362,9 @@ export default function CoachPage() {
         </div>
       </Card>
 
+      {/* Bilan de la semaine */}
+      <WeekCard store={store} date={date} />
+
       {/* Bilan */}
       <Card title="📋 Bilan du soir" right={day.closed ? <span className="text-xs text-[var(--green)]">clôturé</span> : undefined}>
         <div className="mb-3 flex items-center gap-2 text-sm">
@@ -413,6 +424,69 @@ export default function CoachPage() {
         </form>
         <p className="mt-2 text-xs text-[var(--muted)]">Les heures suivent ton plan sommeil (ex : « avant le coucher, 75 min »). Respecte les doses de l’étiquette ou de ton pharmacien.</p>
       </Card>
+
+      <BackupCard store={store} onImport={s => setStore(s)} />
     </main>
+  )
+}
+
+function WeekCard({ store, date }: { store: Store; date: string }) {
+  const w = weekSummary(date, store)
+  const row = (label: string, v: string) => (
+    <div className="flex justify-between rounded-lg bg-[var(--surface)] px-3 py-2 text-sm"><span>{label}</span><b>{v}</b></div>
+  )
+  return (
+    <Card title="🗓️ Cette semaine" right={<span className="text-xs text-[var(--muted)]">{w.days} jour(s) suivis</span>}>
+      {w.days === 0 ? <p className="text-sm text-[var(--muted)]">Pas encore de données cette semaine.</p> : (
+        <div className="space-y-2">
+          {row('Score moyen', `${w.avgScore}%`)}
+          {row('Jours ≥ 60 %', `${w.goodDays}/${w.days}`)}
+          {row('Eau moyenne', `${w.avgWaterL} L`)}
+          {row('Protéines moyennes', `${w.avgProtein} g`)}
+          {row('Jours à 5000 pas', `${w.stepsDays}/${w.days}`)}
+          {row('Padel · Kiné · Renfo', `${w.padel}/2 · ${w.kine}/2 · ${w.renfo}/1`)}
+          {row('Craquages (hors plaisir prévu)', String(w.cravings))}
+          {w.weightDelta !== undefined && row('Poids sur la semaine', `${w.weightDelta > 0 ? '+' : ''}${w.weightDelta} kg`)}
+        </div>
+      )}
+    </Card>
+  )
+}
+
+function BackupCard({ store, onImport }: { store: Store; onImport: (s: Store) => void }) {
+  const [msg, setMsg] = useState('')
+  const exportJson = () => {
+    const blob = new Blob([JSON.stringify(store, null, 2)], { type: 'application/json' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `coach-sauvegarde-${logicalDay()}.json`
+    a.click()
+    URL.revokeObjectURL(a.href)
+    setMsg('Sauvegarde téléchargée ✓')
+  }
+  const importJson = async (f: File | undefined) => {
+    if (!f) return
+    try {
+      const data = JSON.parse(await f.text())
+      if (!data || typeof data !== 'object' || !data.days) throw new Error('format')
+      if (!confirm('Remplacer toutes les données actuelles par cette sauvegarde ?')) return
+      onImport(migrateStore(data))
+      setMsg('Sauvegarde importée ✓')
+    } catch {
+      setMsg('Fichier invalide, rien n’a été changé.')
+    }
+  }
+  return (
+    <Card title="💾 Sauvegarde">
+      <p className="mb-3 text-xs text-[var(--muted)]">Tes données sont uniquement dans ce navigateur. Télécharge une sauvegarde de temps en temps (et pour passer d’un appareil à l’autre).</p>
+      <div className="flex flex-wrap gap-2">
+        <button className={btn} onClick={exportJson}>Exporter (.json)</button>
+        <label className={btn + ' cursor-pointer'}>
+          Importer
+          <input type="file" accept="application/json,.json" className="hidden" onChange={e => { importJson(e.target.files?.[0]); e.target.value = '' }} />
+        </label>
+      </div>
+      {msg && <p className="mt-2 text-sm">{msg}</p>}
+    </Card>
   )
 }

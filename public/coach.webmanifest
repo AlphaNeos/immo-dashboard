@@ -1,0 +1,15 @@
+{
+  "name": "Mon Coach",
+  "short_name": "Coach",
+  "description": "Routine, sommeil, sport et objectifs perso",
+  "start_url": "/coach",
+  "scope": "/coach",
+  "display": "standalone",
+  "background_color": "#0F172A",
+  "theme_color": "#0F172A",
+  "lang": "fr",
+  "icons": [
+    { "src": "/coach-icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/coach-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

@@ -56,6 +56,8 @@ export const ymd = (d = new Date()) => {
   const z = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
   return z.toISOString().slice(0, 10)
 }
+/** Le « jour » ne change qu'à 06:00 (tu te couches tard) : 02:00 appartient encore à la veille. */
+export const logicalDay = (d = new Date()) => ymd(new Date(d.getTime() - 360 * 60000))
 export const addDays = (s: string, n: number) => {
   const d = new Date(s + 'T12:00:00')
   d.setDate(d.getDate() + n)
@@ -100,10 +102,10 @@ export const defaultSettings = (): Settings => ({
   goalWeight: 90,
   supplements: [],
   sleep: {
-    startDate: ymd(), startBed: 180, startWake: 630,
+    startDate: logicalDay(), startBed: 180, startWake: 630,
     targetBed: 30, targetWake: 480, stepMin: 30, everyDays: 3,
   },
-  weights: { [ymd()]: 102 },
+  weights: { [logicalDay()]: 102 },
 })
 
 export function migrate(raw: unknown): Store {
@@ -265,4 +267,30 @@ export function reportText(date: string, store: Store) {
     `Mon retour : ${d.feedback || '—'}`,
     '', 'Aide-moi à adapter mon programme pour demain.',
   ].join('\n')
+}
+
+
+// ───── Bilan de la semaine ─────
+export function weekSummary(date: string, store: Store) {
+  const keys = weekDays(date).filter(k => store.days[k])
+  const scores = keys.map(k => scoreOn(k, store).pct)
+  const avg = (f: (d: Day) => number) => (keys.length ? Math.round(keys.reduce((a, k) => a + f(store.days[k]), 0) / keys.length) : 0)
+  const ws = Object.keys(store.settings.weights).sort()
+  const inWeek = ws.filter(k => k >= weekStart(date) && k <= addDays(weekStart(date), 6))
+  const before = ws.filter(k => k < weekStart(date)).pop()
+  const startW = before ? store.settings.weights[before] : inWeek.length ? store.settings.weights[inWeek[0]] : undefined
+  const endW = inWeek.length ? store.settings.weights[inWeek[inWeek.length - 1]] : undefined
+  return {
+    days: keys.length,
+    avgScore: scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0,
+    goodDays: scores.filter(x => x >= 60).length,
+    avgWaterL: Math.round(avg(d => d.water) / 100) / 10,
+    stepsDays: keys.filter(k => store.days[k].steps >= STEPS_GOAL).length,
+    avgProtein: avg(d => d.protein),
+    cravings: keys.reduce((a, k) => a + store.days[k].cravings.filter(c => c.type !== 'plaisir').length, 0),
+    padel: weekCount(date, store, 'padel'),
+    kine: weekCount(date, store, 'kine'),
+    renfo: weekCount(date, store, 'renfo'),
+    weightDelta: startW !== undefined && endW !== undefined ? Math.round((endW - startW) * 10) / 10 : undefined,
+  }
 }
