@@ -1,9 +1,10 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSync } from './useSync'
 import {
   OFFICE_GOAL, PROTEIN_GOAL, STORAGE_KEY, STEPS_GOAL, WATER_GOAL, WEEKLY,
-  addDays, coachAdvice, logicalDay, migrate as migrateStore, weekSummary, currentWeight, emptyDay, eff, fmtClock, fmtH, migrate,
+  addDays, coachAdvice, logicalDay, migrate as migrateStore, stampAll, weekSummary, currentWeight, emptyDay, eff, fmtClock, fmtH, migrate,
   buildIcs, reportText, scoreOn, sleepFor, suppMinutes, tasksFor, weekCount,
   type Day, type Store,
 } from './logic'
@@ -83,6 +84,7 @@ function WeightChart({ store }: { store: Store }) {
 // ───────────────────────── Page ─────────────────────────
 export default function CoachPage() {
   const [store, setStore] = useStore()
+  const sync = useSync(store, setStore)
   const [date, setDate] = useState(() => logicalDay())
   const [now, setNow] = useState(() => new Date())
   const [cNote, setCNote] = useState('')
@@ -111,7 +113,7 @@ export default function CoachPage() {
     const v = parseInt(new URLSearchParams(window.location.search).get('steps') ?? '')
     if (Number.isNaN(v) || v < 0 || v > 100000) return
      
-    setStore(st => (st ? { ...st, days: { ...st.days, [logicalDay()]: { ...(st.days[logicalDay()] ?? emptyDay()), steps: v } } } : st))
+    setStore(st => (st ? { ...st, days: { ...st.days, [logicalDay()]: { ...(st.days[logicalDay()] ?? emptyDay()), steps: v, u: Date.now() } } } : st))
     window.history.replaceState(null, '', window.location.pathname)
   }, [store, setStore])
   const prevToday = useRef(today)
@@ -126,7 +128,7 @@ export default function CoachPage() {
   const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
 
   const update = useCallback((fn: (d: Day) => Day) => {
-    setStore(s => (s ? { ...s, days: { ...s.days, [date]: fn(s.days[date] ?? emptyDay()) } } : s))
+    setStore(s => (s ? { ...s, days: { ...s.days, [date]: { ...fn(s.days[date] ?? emptyDay()), u: Date.now() } } } : s))
   }, [date, setStore])
 
   const tasks = useMemo(() => (store ? tasksFor(date, store) : []), [store, date])
@@ -170,7 +172,7 @@ export default function CoachPage() {
   const lost = S.startWeight - cw
   const weeksLeft = Math.max(0, Math.ceil((cw - S.goalWeight) / 0.5))
   const advice = day.closed ? coachAdvice(date, store) : []
-  const setSettings = (fn: (s: typeof S) => typeof S) => setStore(st => (st ? { ...st, settings: fn(st.settings) } : st))
+  const setSettings = (fn: (s: typeof S) => typeof S) => setStore(st => (st ? { ...st, settings: fn(st.settings), meta: { settingsU: Date.now() } } : st))
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 p-4 pb-24">
@@ -426,7 +428,8 @@ export default function CoachPage() {
       </Card>
 
       <RemindersCard store={store} notif={notif} onEnable={async () => setNotif(await Notification.requestPermission())} />
-      <BackupCard store={store} onImport={s => setStore(s)} />
+      <SyncCard sync={sync} />
+      <BackupCard store={store} onImport={s => setStore(stampAll(s))} />
     </main>
   )
 }
@@ -521,6 +524,48 @@ function RemindersCard({ store, notif, onEnable }: { store: Store; notif: string
           : notif === 'unsupported' ? <span className="text-[var(--muted)]">non disponibles ici (HTTP sur téléphone)</span>
           : <button className={btn} onClick={onEnable}>Activer les notifications</button>}
       </div>
+    </Card>
+  )
+}
+
+function SyncCard({ sync }: { sync: ReturnType<typeof useSync> }) {
+  const [email, setEmail] = useState('')
+  const [code, setCode] = useState('')
+  const [sent, setSent] = useState(false)
+  if (!sync.configured) {
+    return (
+      <Card title="☁️ Synchro PC ↔ téléphone">
+        <p className="text-sm text-[var(--muted)]">Non activée : Supabase n’est pas configuré sur cette version (voir le README, section « Hébergement + synchro »). L’app marche quand même, en local.</p>
+      </Card>
+    )
+  }
+  return (
+    <Card title="☁️ Synchro PC ↔ téléphone" right={<span className="text-xs text-[var(--muted)]">{sync.status === 'syncing' ? 'synchro…' : sync.status === 'ok' ? `✓ ${sync.lastSync}` : sync.status === 'error' ? 'erreur' : ''}</span>}>
+      {sync.user ? (
+        <div className="space-y-2 text-sm">
+          <p>Connecté : <b>{sync.user.email}</b></p>
+          <p className="text-xs text-[var(--muted)]">Tes données sont enregistrées en ligne (privées, accessibles uniquement avec ta connexion) et fusionnées entre tes appareils.</p>
+          <div className="flex gap-2">
+            <button className={btn} onClick={() => sync.syncNow()}>Synchroniser maintenant</button>
+            <button className={btn} onClick={() => sync.signOut()}>Se déconnecter</button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-2 text-sm">
+          <p className="text-xs text-[var(--muted)]">Entre ton e-mail : tu reçois un lien (et un code) de connexion, sans mot de passe.</p>
+          <div className="flex gap-2">
+            <input className={input + ' flex-1'} type="email" placeholder="ton@email.com" value={email} onChange={e => setEmail(e.target.value)} />
+            <button className={btn} onClick={async () => { if (await sync.sendLink(email)) setSent(true) }}>Recevoir</button>
+          </div>
+          {sent && (
+            <div className="flex gap-2">
+              <input className={input + ' flex-1'} inputMode="numeric" placeholder="Code reçu (ou clique sur le lien)" value={code} onChange={e => setCode(e.target.value)} />
+              <button className={btn} onClick={() => sync.verifyCode(email, code)}>Valider</button>
+            </div>
+          )}
+        </div>
+      )}
+      {sync.error && <p className="mt-2 text-sm text-[var(--amber)]">{sync.error}</p>}
     </Card>
   )
 }

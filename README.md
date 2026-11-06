@@ -46,3 +46,17 @@ App perso de routine (sommeil progressif, eau, protéines, pas, sport, compléme
 - Sauvegarde : carte « Sauvegarde » en bas de page (export / import `.json`).
 - Pas automatiques : un raccourci du téléphone peut ouvrir `/coach?steps=4200`.
 - Le « jour » change à 06:00 (pas à minuit). Code : `app/coach/logic.ts` (règles) et `app/coach/page.tsx` (écran).
+
+### Hébergement + synchro (une fois pour toutes)
+
+1. **Supabase** (le même projet que le dashboard immo convient) :
+   - *SQL Editor* → coller `supabase/coach_state.sql` → **Run** (table privée, protégée par RLS).
+   - *Authentication → Providers* : « Email » activé.
+   - *Authentication → URL Configuration* : **Site URL** = l'adresse Vercel (ex. `https://xxx.vercel.app`) et ajouter `https://xxx.vercel.app/coach` aux **Redirect URLs**.
+   - *(Optionnel, pour recevoir un code à 6 chiffres)* *Authentication → Email Templates → Magic Link* : ajouter `{{ .Token }}` dans le texte.
+2. **Vercel** : *Add New → Project* → ce dépôt (branche de production = celle qui contient `/coach`) → variables d'environnement :
+   `NEXT_PUBLIC_SUPABASE_URL` et `NEXT_PUBLIC_SUPABASE_ANON_KEY` (Supabase → Project Settings → API) → **Deploy**.
+3. Ouvrir `https://xxx.vercel.app/coach` sur PC **et** téléphone → carte « ☁️ Synchro » → e-mail → lien de connexion. Les deux appareils se fusionnent (le plus récent gagne, jour par jour).
+4. Téléphone : « Ajouter à l'écran d'accueil », puis carte « 🔔 Rappels » → exporter les rappels `.ics` vers l'agenda.
+
+Sans ces variables, l'app fonctionne en local uniquement (carte « Synchro » = non activée).

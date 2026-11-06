@@ -47,8 +47,9 @@ export type Day = {
   mood: number
   feedback: string
   closed: boolean
+  u?: number // dernière modification (ms) — sert à la synchro
 }
-export type Store = { days: Record<string, Day>; settings: Settings }
+export type Store = { days: Record<string, Day>; settings: Settings; meta?: { settingsU?: number } }
 export type Task = { id: string; label: string; min: number; emoji: string; points: number; hint?: string }
 
 // ───── Dates ─────
@@ -105,7 +106,7 @@ export const defaultSettings = (): Settings => ({
     startDate: logicalDay(), startBed: 180, startWake: 630,
     targetBed: 30, targetWake: 480, stepMin: 30, everyDays: 3,
   },
-  weights: { [logicalDay()]: 102 },
+  weights: {},
 })
 
 export function migrate(raw: unknown): Store {
@@ -118,7 +119,7 @@ export function migrate(raw: unknown): Store {
     settings.supplements = [...DEFAULT_SUPPS, ...settings.supplements.filter(x => !DEFAULT_SUPPS.some(d => d.name === x.name))]
     settings.suppSeeded = true
   }
-  return { days, settings }
+  return { days, settings, meta: r.meta }
 }
 
 // ───── Plan de sommeil progressif ─────
@@ -324,4 +325,24 @@ export function buildIcs(store: Store, startDate: string, nDays: number) {
   }
   L.push('END:VCALENDAR')
   return L.join('\r\n')
+}
+
+
+// ───── Synchro : fusion de deux sauvegardes (le plus récent gagne, jour par jour) ─────
+export function mergeStores(a: Store, b: Store): Store {
+  const days: Record<string, Day> = {}
+  for (const k of new Set([...Object.keys(a.days), ...Object.keys(b.days)])) {
+    const x = a.days[k], y = b.days[k]
+    days[k] = !x ? y : !y ? x : (x.u ?? 0) >= (y.u ?? 0) ? x : y
+  }
+  const ua = a.meta?.settingsU ?? 0, ub = b.meta?.settingsU ?? 0
+  const [win, lose] = ub > ua ? [b, a] : [a, b]
+  const settings: Settings = { ...win.settings, weights: { ...lose.settings.weights, ...win.settings.weights } }
+  return { days, settings, meta: { settingsU: Math.max(ua, ub) } }
+}
+
+/** Marque tout comme « modifié maintenant » (après un import : l'import doit gagner). */
+export function stampAll(s: Store): Store {
+  const now = Date.now()
+  return { ...s, days: Object.fromEntries(Object.entries(s.days).map(([k, d]) => [k, { ...d, u: now }])), meta: { settingsU: now } }
 }
