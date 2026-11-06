@@ -81,10 +81,51 @@ function WeightChart({ store }: { store: Store }) {
   )
 }
 
+// ───────────────────────── Onglets ─────────────────────────
+type Tab = 'jour' | 'objectifs' | 'progres' | 'bilan' | 'reglages'
+const TABS: { id: Tab; icon: string; label: string }[] = [
+  { id: 'jour', icon: '📅', label: 'Jour' },
+  { id: 'objectifs', icon: '🎯', label: 'Objectifs' },
+  { id: 'progres', icon: '📈', label: 'Progrès' },
+  { id: 'bilan', icon: '📋', label: 'Bilan' },
+  { id: 'reglages', icon: '⚙️', label: 'Réglages' },
+]
+function TabBar({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
+  return (
+    <nav aria-label="Navigation" className="fixed inset-x-0 bottom-0 z-20 border-t border-[var(--border)] bg-[var(--bg)]" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+      <div className="mx-auto flex max-w-2xl">
+        {TABS.map(t => (
+          <button key={t.id} onClick={() => onChange(t.id)} aria-current={tab === t.id ? 'page' : undefined}
+            className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-semibold ${tab === t.id ? 'text-[var(--violet)]' : 'text-[var(--muted)]'}`}>
+            <span className="text-lg leading-none">{t.icon}</span>
+            {t.label}
+          </button>
+        ))}
+      </div>
+    </nav>
+  )
+}
+
 // ───────────────────────── Page ─────────────────────────
 export default function CoachPage() {
   const [store, setStore] = useStore()
   const sync = useSync(store, setStore)
+  const [tab, setTab] = useState<Tab>('jour')
+  useEffect(() => {
+    const read = () => {
+      const h = window.location.hash.slice(1)
+      if (TABS.some(t => t.id === h)) setTab(h as Tab)
+    }
+     
+    read()
+    window.addEventListener('hashchange', read)
+    return () => window.removeEventListener('hashchange', read)
+  }, [])
+  const goTab = (t: Tab) => {
+    setTab(t)
+    try { window.history.replaceState(null, '', '#' + t) } catch { /* ignore */ }
+    window.scrollTo(0, 0)
+  }
   const [date, setDate] = useState(() => logicalDay())
   const [now, setNow] = useState(() => new Date())
   const [cNote, setCNote] = useState('')
@@ -175,8 +216,8 @@ export default function CoachPage() {
   const setSettings = (fn: (s: typeof S) => typeof S) => setStore(st => (st ? { ...st, settings: fn(st.settings), meta: { settingsU: Date.now() } } : st))
 
   return (
-    <main className="mx-auto max-w-2xl space-y-4 p-4 pb-24">
-      {/* En-tête */}
+    <main className="mx-auto max-w-2xl space-y-4 p-4 pb-28">
+      {tab === 'jour' || tab === 'objectifs' || tab === 'bilan' ? (
       <header className="space-y-3">
         <div className="flex items-center justify-between">
           <div>
@@ -199,6 +240,11 @@ export default function CoachPage() {
         </div>
         <Bar pct={pct} color={pct >= 85 ? 'var(--green)' : pct >= 60 ? 'var(--violet)' : 'var(--amber)'} />
       </header>
+      ) : (
+        <h1 className="text-2xl font-bold">{tab === 'progres' ? 'Progrès 📈' : 'Réglages ⚙️'}</h1>
+      )}
+      {tab === 'jour' && (
+        <>
 
       {isToday && (overdue.length > 0 || nextTask) && (
         <div className="rounded-2xl border border-[var(--violet)] bg-[var(--violet-dim)] p-3 text-sm">
@@ -212,7 +258,6 @@ export default function CoachPage() {
         </button>
       )}
 
-      {/* Sommeil */}
       <Card title="🌙 Plan sommeil progressif" right={<span className="text-xs text-[var(--muted)]">{sl.done ? 'objectif atteint 🎉' : `prochain cran dans ${sl.nextIn} j`}</span>}>
         <div className="grid grid-cols-2 gap-2 text-center">
           <div className="rounded-xl bg-[var(--surface)] p-3"><div className="text-xs text-[var(--muted)]">Lever</div><div className="text-2xl font-bold">{fmtClock(sl.wake)}</div></div>
@@ -228,7 +273,6 @@ export default function CoachPage() {
         )}
       </Card>
 
-      {/* Programme */}
       <Card title="📅 Programme du jour">
         <ul className="space-y-2">
           {tasks.map(t => (
@@ -244,7 +288,10 @@ export default function CoachPage() {
         {S.supplements.length === 0 && <p className="mt-2 text-xs text-[var(--amber)]">Aucun complément enregistré : ajoute-les plus bas (section Réglages).</p>}
       </Card>
 
-      {/* Eau */}
+        </>
+      )}
+      {tab === 'objectifs' && (
+        <>
       <Card title="💧 Eau — objectif 2 L" right={<span className="text-sm font-bold">{(day.water / 1000).toFixed(2)} L</span>}>
         <Bar pct={(day.water / WATER_GOAL) * 100} color="#38BDF8" />
         <div className="mt-3 flex flex-wrap gap-2">
@@ -254,7 +301,6 @@ export default function CoachPage() {
         {day.water >= WATER_GOAL && <p className="mt-2 text-sm text-[var(--green)]">✅ Objectif eau atteint !</p>}
       </Card>
 
-      {/* Protéines */}
       <Card title="🥚 Protéines — sans te priver" right={<span className="text-sm font-bold">{day.protein} / {PROTEIN_GOAL} g</span>}>
         <Bar pct={(day.protein / PROTEIN_GOAL) * 100} color="var(--green)" />
         <div className="mt-3 flex flex-wrap gap-2">
@@ -264,7 +310,6 @@ export default function CoachPage() {
         <p className="mt-2 text-xs text-[var(--muted)]">Repères : 1 œuf ≈ 6 g · poulet 100 g ≈ 25 g · skyr 150 g ≈ 15 g · thon 1 boîte ≈ 25 g.</p>
       </Card>
 
-      {/* Bureau */}
       <Card title="🏢 Travail — objectif 4h" right={<span className="text-sm font-bold">{fmtH(day.officeMin)}</span>}>
         <Bar pct={(day.officeMin / OFFICE_GOAL) * 100} color="var(--gold)" />
         <div className="mt-3 flex gap-2">
@@ -275,7 +320,6 @@ export default function CoachPage() {
         <p className="mt-2 text-xs text-[var(--muted)]">Bloc 1 : midi → crèche (15h30). Bloc 2 : après la crèche, 2–3h. Au-delà de 4h = bonus, pas obligation.</p>
       </Card>
 
-      {/* Sport */}
       <Card title="🏃 Mouvement">
         <div className="mb-1 flex justify-between text-sm"><span>🚶 Pas</span><b>{day.steps.toLocaleString('fr-FR')} / {STEPS_GOAL.toLocaleString('fr-FR')}</b></div>
         <Bar pct={(day.steps / STEPS_GOAL) * 100} color="var(--green)" />
@@ -307,26 +351,6 @@ export default function CoachPage() {
         </div>
       </Card>
 
-      {/* Poids */}
-      <Card title="⚖️ Poids" right={<span className="text-sm font-bold">{cw} kg → {S.goalWeight}</span>}>
-        <Bar pct={((S.startWeight - cw) / (S.startWeight - S.goalWeight)) * 100} color="var(--violet)" />
-        <p className="mt-2 text-xs text-[var(--muted)]">
-          {lost >= 0 ? `−${lost.toFixed(1)} kg depuis le début` : `+${(-lost).toFixed(1)} kg depuis le début`} · à −0,5 kg/sem. ≈ {weeksLeft} semaines restantes. Pèse-toi 1 fois/semaine, même jour, au réveil.
-        </p>
-        <div className="mt-3"><WeightChart store={store} /></div>
-        <form className="mt-3 flex gap-2" onSubmit={e => {
-          e.preventDefault()
-          const v = parseFloat(wInput.replace(',', '.'))
-          if (!v || v < 30 || v > 300) return
-          setSettings(s => ({ ...s, weights: { ...s.weights, [date]: v } }))
-          setWInput('')
-        }}>
-          <input className={input + ' flex-1'} inputMode="decimal" placeholder="Poids du jour (kg)" value={wInput} onChange={e => setWInput(e.target.value)} />
-          <button className={btn} type="submit">Enregistrer</button>
-        </form>
-      </Card>
-
-      {/* Craquages */}
       <Card title="🍫 Craquages (sans jugement)" right={<span className="text-xs text-[var(--muted)]">−5 pts, « plaisir prévu » = 0</span>}>
         <input value={cNote} onChange={e => setCNote(e.target.value)} placeholder="Quoi / pourquoi ? (optionnel)" className={input + ' w-full'} />
         <div className="mt-2 flex flex-wrap gap-2">
@@ -348,7 +372,28 @@ export default function CoachPage() {
         )}
       </Card>
 
-      {/* Semaine */}
+        </>
+      )}
+      {tab === 'progres' && (
+        <>
+      <Card title="⚖️ Poids" right={<span className="text-sm font-bold">{cw} kg → {S.goalWeight}</span>}>
+        <Bar pct={((S.startWeight - cw) / (S.startWeight - S.goalWeight)) * 100} color="var(--violet)" />
+        <p className="mt-2 text-xs text-[var(--muted)]">
+          {lost >= 0 ? `−${lost.toFixed(1)} kg depuis le début` : `+${(-lost).toFixed(1)} kg depuis le début`} · à −0,5 kg/sem. ≈ {weeksLeft} semaines restantes. Pèse-toi 1 fois/semaine, même jour, au réveil.
+        </p>
+        <div className="mt-3"><WeightChart store={store} /></div>
+        <form className="mt-3 flex gap-2" onSubmit={e => {
+          e.preventDefault()
+          const v = parseFloat(wInput.replace(',', '.'))
+          if (!v || v < 30 || v > 300) return
+          setSettings(s => ({ ...s, weights: { ...s.weights, [date]: v } }))
+          setWInput('')
+        }}>
+          <input className={input + ' flex-1'} inputMode="decimal" placeholder="Poids du jour (kg)" value={wInput} onChange={e => setWInput(e.target.value)} />
+          <button className={btn} type="submit">Enregistrer</button>
+        </form>
+      </Card>
+
       <Card title="📈 7 derniers jours">
         <div className="flex h-24 items-end gap-2">
           {last7.map(x => (
@@ -364,10 +409,12 @@ export default function CoachPage() {
         </div>
       </Card>
 
-      {/* Bilan de la semaine */}
       <WeekCard store={store} date={date} />
 
-      {/* Bilan */}
+        </>
+      )}
+      {tab === 'bilan' && (
+        <>
       <Card title="📋 Bilan du soir" right={day.closed ? <span className="text-xs text-[var(--green)]">clôturé</span> : undefined}>
         <div className="mb-3 flex items-center gap-2 text-sm">
           Moral :
@@ -394,7 +441,10 @@ export default function CoachPage() {
         )}
       </Card>
 
-      {/* Réglages */}
+        </>
+      )}
+      {tab === 'reglages' && (
+        <>
       <Card title="⚙️ Réglages — compléments">
         <ul className="mb-3 space-y-2">
           {S.supplements.map(sp => (
@@ -413,7 +463,7 @@ export default function CoachPage() {
           }] }))
           setSuppName('')
         }}>
-          <input className={input + ' flex-1'} placeholder="Nom + dose (ex : Magnésium 300 mg)" value={suppName} onChange={e => setSuppName(e.target.value)} />
+          <input className={input + ' w-full basis-full'} placeholder="Nom + dose (ex : Magnésium 300 mg)" value={suppName} onChange={e => setSuppName(e.target.value)} />
           <select className={input} value={suppAnchor} onChange={e => setSuppAnchor(e.target.value as 'fixed' | 'wake' | 'bed')}>
             <option value="wake">après le lever</option>
             <option value="bed">avant le coucher</option>
@@ -430,6 +480,9 @@ export default function CoachPage() {
       <RemindersCard store={store} notif={notif} onEnable={async () => setNotif(await Notification.requestPermission())} />
       <SyncCard sync={sync} />
       <BackupCard store={store} onImport={s => setStore(stampAll(s))} />
+        </>
+      )}
+      <TabBar tab={tab} onChange={goTab} />
     </main>
   )
 }
