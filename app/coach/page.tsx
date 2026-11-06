@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   OFFICE_GOAL, PROTEIN_GOAL, STORAGE_KEY, WALK_GOAL, WATER_GOAL, WEEKLY,
   addDays, coachAdvice, currentWeight, emptyDay, eff, fmtClock, fmtH, migrate,
-  parseClock, reportText, scoreOn, sleepFor, tasksFor, weekCount, ymd,
+  reportText, scoreOn, sleepFor, suppMinutes, tasksFor, weekCount, ymd,
   type Day, type Store,
 } from './logic'
 
@@ -90,6 +90,8 @@ export default function CoachPage() {
   const [wInput, setWInput] = useState('')
   const [suppName, setSuppName] = useState('')
   const [suppTime, setSuppTime] = useState('09:00')
+  const [suppAnchor, setSuppAnchor] = useState<'fixed' | 'wake' | 'bed'>('wake')
+  const [suppOffset, setSuppOffset] = useState('60')
   const [notif, setNotif] = useState<'default' | 'granted' | 'denied' | 'unsupported'>(() =>
     typeof Notification === 'undefined' ? 'unsupported' : Notification.permission)
 
@@ -361,7 +363,7 @@ export default function CoachPage() {
         <ul className="mb-3 space-y-2">
           {S.supplements.map(sp => (
             <li key={sp.id} className="flex items-center justify-between rounded-xl bg-[var(--surface)] px-3 py-2 text-sm">
-              <span>💊 {sp.name} · {sp.time}</span>
+              <span>💊 {sp.name} · {fmtClock(suppMinutes(sp, sl))}</span>
               <button className="text-[var(--muted)]" onClick={() => setSettings(s => ({ ...s, supplements: s.supplements.filter(x => x.id !== sp.id) }))}>✕</button>
             </li>
           ))}
@@ -369,14 +371,24 @@ export default function CoachPage() {
         <form className="flex flex-wrap gap-2" onSubmit={e => {
           e.preventDefault()
           if (!suppName.trim()) return
-          setSettings(s => ({ ...s, supplements: [...s.supplements, { id: String(Date.now()), name: suppName.trim(), time: suppTime }] }))
+          setSettings(s => ({ ...s, supplements: [...s.supplements, {
+            id: String(Date.now()), name: suppName.trim(), time: suppTime,
+            ...(suppAnchor === 'fixed' ? {} : { anchor: suppAnchor, offset: (parseInt(suppOffset) || 0) * (suppAnchor === 'bed' ? -1 : 1) }),
+          }] }))
           setSuppName('')
         }}>
           <input className={input + ' flex-1'} placeholder="Nom + dose (ex : Magnésium 300 mg)" value={suppName} onChange={e => setSuppName(e.target.value)} />
-          <input className={input} type="time" value={suppTime} onChange={e => setSuppTime(e.target.value || '09:00')} />
+          <select className={input} value={suppAnchor} onChange={e => setSuppAnchor(e.target.value as 'fixed' | 'wake' | 'bed')}>
+            <option value="wake">après le lever</option>
+            <option value="bed">avant le coucher</option>
+            <option value="fixed">heure fixe</option>
+          </select>
+          {suppAnchor === 'fixed'
+            ? <input className={input} type="time" value={suppTime} onChange={e => setSuppTime(e.target.value || '09:00')} />
+            : <input className={input + ' w-20'} inputMode="numeric" value={suppOffset} onChange={e => setSuppOffset(e.target.value)} aria-label="minutes" placeholder="min" />}
           <button className={btn} type="submit">Ajouter</button>
         </form>
-        <p className="mt-2 text-xs text-[var(--muted)]">Heure à adapter à ton plan sommeil (ex : {fmtClock(parseClock('09:00'))} le matin, le soir ~1h avant le coucher).</p>
+        <p className="mt-2 text-xs text-[var(--muted)]">Les heures suivent ton plan sommeil (ex : « avant le coucher, 75 min »). Respecte les doses de l’étiquette ou de ton pharmacien.</p>
       </Card>
     </main>
   )

@@ -7,7 +7,14 @@ export const PROTEIN_GOAL = 120 // g
 export const WEEKLY = { padel: 2, kine: 2, renfo: 1 } as const
 export const STORAGE_KEY = 'coach-perso-v2'
 
-export type Supp = { id: string; name: string; time: string } // time = "HH:MM"
+export type Supp = {
+  id: string
+  name: string
+  time: string // "HH:MM" si anchor absent
+  anchor?: 'wake' | 'bed' // heure relative au plan de sommeil
+  offset?: number // minutes ajoutées à l'ancre (négatif = avant)
+  note?: string
+}
 export type SleepPlan = {
   startDate: string
   startBed: number // minutes après minuit (180 = 03:00)
@@ -22,6 +29,7 @@ export type Settings = {
   startWeight: number
   goalWeight: number
   supplements: Supp[]
+  suppSeeded?: boolean
   sleep: SleepPlan
   weights: Record<string, number>
 }
@@ -77,6 +85,15 @@ export const emptyDay = (): Day => ({
   padel: false, kine: false, renfo: false, cravings: [], mood: 0, feedback: '', closed: false,
 })
 
+export const DEFAULT_SUPPS: Supp[] = [
+  { id: 'bilastine', name: 'Bilastine (allergie)', time: '', anchor: 'wake', offset: 5, note: 'À jeun, ~1h avant le repas (suis la notice / ton pharmacien)' },
+  { id: 'collyre', name: 'Gouttes pour les yeux (avant de sortir)', time: '', anchor: 'wake', offset: 75 },
+  { id: 'vitc', name: 'Vit. C Strong 500 + zinc (Trec)', time: '', anchor: 'wake', offset: 65, note: 'Avec le repas, dose selon l’étiquette' },
+  { id: 'multi', name: 'Multivitamines Plus (Be-Life)', time: '', anchor: 'wake', offset: 65, note: 'Avec le repas, dose selon l’étiquette' },
+  { id: 'omega3', name: 'Oméga 3 Magnum 1400 (Be-Life)', time: '', anchor: 'wake', offset: 65, note: 'Avec le repas, dose selon l’étiquette' },
+  { id: 'ashwa', name: 'Ashwagandha Plus (Be-Life)', time: '', anchor: 'bed', offset: -75, note: 'Stress / sommeil — le soir, dose selon l’étiquette' },
+]
+
 export const defaultSettings = (): Settings => ({
   heightCm: 176,
   startWeight: 102,
@@ -94,7 +111,12 @@ export function migrate(raw: unknown): Store {
   const base = defaultSettings()
   const days: Record<string, Day> = {}
   for (const [k, v] of Object.entries(r.days ?? {})) days[k] = { ...emptyDay(), ...v }
-  return { days, settings: { ...base, ...(r.settings ?? {}), sleep: { ...base.sleep, ...(r.settings?.sleep ?? {}) } } }
+  const settings: Settings = { ...base, ...(r.settings ?? {}), sleep: { ...base.sleep, ...(r.settings?.sleep ?? {}) } }
+  if (!settings.suppSeeded) {
+    settings.supplements = [...DEFAULT_SUPPS, ...settings.supplements.filter(x => !DEFAULT_SUPPS.some(d => d.name === x.name))]
+    settings.suppSeeded = true
+  }
+  return { days, settings }
 }
 
 // ───── Plan de sommeil progressif ─────
@@ -112,12 +134,15 @@ export function ankleDue(date: string, store: Store) {
   return !store.days[addDays(date, -1)]?.done['cheville']
 }
 
+export const suppMinutes = (sp: Supp, sl: { bed: number; wake: number }) =>
+  sp.anchor === 'wake' ? sl.wake + (sp.offset ?? 0) : sp.anchor === 'bed' ? sl.bed + (sp.offset ?? 0) : parseClock(sp.time)
+
 export function tasksFor(date: string, store: Store): Task[] {
   const { settings: s } = store
   const sl = sleepFor(date, s.sleep)
   const list: Task[] = [
     { id: 'reveil', label: 'Réveil à l’heure du plan', min: sl.wake, emoji: '⏰', points: 15, hint: 'Lever = le plus important pour recaler l’horloge' },
-    { id: 'repas1', label: 'Premier repas protéiné', min: sl.wake + 45, emoji: '🍳', points: 10, hint: 'Œufs, skyr/fromage blanc, jambon…' },
+    { id: 'repas1', label: 'Premier repas protéiné', min: sl.wake + 60, emoji: '🍳', points: 10, hint: 'Œufs, skyr/fromage blanc, jambon…' },
     { id: 'repas2', label: 'Repas du midi', min: 13 * 60 + 30, emoji: '🥗', points: 10 },
     { id: 'collation', label: 'Collation prévue (fruit + protéines)', min: 17 * 60, emoji: '🍎', points: 10, hint: 'Évite le craquage de fin d’après-midi' },
     { id: 'repas3', label: 'Dîner', min: 20 * 60, emoji: '🍽️', points: 10 },
@@ -126,7 +151,7 @@ export function tasksFor(date: string, store: Store): Task[] {
     { id: 'coucher', label: 'Au lit à l’heure du plan', min: sl.bed, emoji: '😴', points: 20 },
   ]
   for (const sp of s.supplements) {
-    list.push({ id: 'supp:' + sp.id, label: sp.name, min: parseClock(sp.time), emoji: '💊', points: 8 })
+    list.push({ id: 'supp:' + sp.id, label: sp.name, min: suppMinutes(sp, sl), emoji: '💊', points: 8, hint: sp.note })
   }
   if (ankleDue(date, store)) {
     list.push({ id: 'cheville', label: 'Cheville : élastique + montées sur pointes', min: 18 * 60 + 30, emoji: '🦶', points: 10, hint: 'Un jour sur deux' })
