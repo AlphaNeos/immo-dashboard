@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   OFFICE_GOAL, PROTEIN_GOAL, STORAGE_KEY, STEPS_GOAL, WATER_GOAL, WEEKLY,
   addDays, coachAdvice, currentWeight, emptyDay, eff, fmtClock, fmtH, migrate,
@@ -102,6 +102,18 @@ export default function CoachPage() {
   }, [])
 
   const today = ymd(now)
+
+  // Import automatique : /coach?steps=4200 (raccourci iPhone / Tasker) règle les pas d'aujourd'hui
+  const imported = useRef(false)
+  useEffect(() => {
+    if (!store || imported.current) return
+    imported.current = true
+    const v = parseInt(new URLSearchParams(window.location.search).get('steps') ?? '')
+    if (Number.isNaN(v) || v < 0 || v > 100000) return
+     
+    setStore(st => (st ? { ...st, days: { ...st.days, [ymd()]: { ...(st.days[ymd()] ?? emptyDay()), steps: v } } } : st))
+    window.history.replaceState(null, '', window.location.pathname)
+  }, [store, setStore])
   const isToday = date === today
   const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
 
@@ -257,10 +269,10 @@ export default function CoachPage() {
       <Card title="🏃 Mouvement">
         <div className="mb-1 flex justify-between text-sm"><span>🚶 Pas</span><b>{day.steps.toLocaleString('fr-FR')} / {STEPS_GOAL.toLocaleString('fr-FR')}</b></div>
         <Bar pct={(day.steps / STEPS_GOAL) * 100} color="var(--green)" />
-        <div className="mt-3 flex flex-wrap gap-2">
-          {[500, 1000, 2000].map(n => <button key={n} className={btn} onClick={() => update(d => ({ ...d, steps: d.steps + n }))}>+{n}</button>)}
-          <button className={btn} onClick={() => update(d => ({ ...d, steps: Math.max(0, d.steps - 500) }))}>−500</button>
-        </div>
+        <button className={btn + ' mt-3 w-full ' + (day.steps >= STEPS_GOAL ? 'border-[var(--green)] text-[var(--green)]' : 'bg-[var(--violet)] text-white')}
+          onClick={() => update(d => ({ ...d, steps: d.steps >= STEPS_GOAL ? 0 : STEPS_GOAL }))}>
+          {day.steps >= STEPS_GOAL ? '✅ 5000 pas faits (toucher pour annuler)' : '🚶 J’ai fait mes 5000 pas'}
+        </button>
         <form className="mt-2 flex gap-2" onSubmit={e => {
           e.preventDefault()
           const v = parseInt(stepsInput.replace(/\s/g, ''))
@@ -268,7 +280,7 @@ export default function CoachPage() {
           update(d => ({ ...d, steps: v }))
           setStepsInput('')
         }}>
-          <input className={input + ' flex-1'} inputMode="numeric" placeholder="Total du téléphone (ex : 3200)" value={stepsInput} onChange={e => setStepsInput(e.target.value)} />
+          <input className={input + ' flex-1'} inputMode="numeric" placeholder="Ou le nombre exact (ex : 6200)" value={stepsInput} onChange={e => setStepsInput(e.target.value)} />
           <button className={btn} type="submit">Définir</button>
         </form>
         <div className="mt-3 space-y-2">
