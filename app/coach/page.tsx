@@ -1,83 +1,26 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  OFFICE_GOAL, PROTEIN_GOAL, STORAGE_KEY, WALK_GOAL, WATER_GOAL, WEEKLY,
+  addDays, coachAdvice, currentWeight, emptyDay, eff, fmtClock, fmtH, migrate,
+  parseClock, reportText, scoreOn, sleepFor, tasksFor, weekCount, ymd,
+  type Day, type Store,
+} from './logic'
 
-// ───────────────────────── Config ─────────────────────────
-const WATER_GOAL = 2000
-const OFFICE_GOAL = 240 // min
-const WALK_GOAL = 30 // min
-const PADEL_GOAL = 2 // par semaine
-const STORAGE_KEY = 'coach-perso-v1'
-
-type Task = { id: string; label: string; time: string; emoji: string; points: number; group: 'matin' | 'journee' | 'soir' }
-
-const TASKS: Task[] = [
-  { id: 'reveil', label: 'Réveil à heure régulière', time: '08:00', emoji: '⏰', points: 10, group: 'matin' },
-  { id: 'comp_matin', label: 'Compléments du matin', time: '08:30', emoji: '💊', points: 10, group: 'matin' },
-  { id: 'comp_midi', label: 'Compléments du midi', time: '12:30', emoji: '💊', points: 10, group: 'journee' },
-  { id: 'repas', label: 'Repas équilibrés (sans craquage)', time: '13:00', emoji: '🥗', points: 15, group: 'journee' },
-  { id: 'soins', label: 'Soins du visage', time: '21:30', emoji: '🧴', points: 15, group: 'soir' },
-  { id: 'comp_soir', label: 'Compléments du soir', time: '21:45', emoji: '💊', points: 10, group: 'soir' },
-  { id: 'ecran', label: 'Écrans coupés avant de dormir', time: '22:30', emoji: '📵', points: 10, group: 'soir' },
-  { id: 'coucher', label: 'Au lit à l’heure (≈ 23:00)', time: '23:00', emoji: '😴', points: 15, group: 'soir' },
-]
-
-type Craving = { type: 'sucre' | 'gras' | 'autre'; note: string; t: string }
-type Day = {
-  water: number
-  done: Record<string, boolean>
-  officeMin: number
-  walkMin: number
-  padel: boolean
-  cravings: Craving[]
-  mood: number // 1-5, 0 = non renseigné
-  feedback: string
-  closed: boolean
-}
-type Store = { days: Record<string, Day> }
-
-const emptyDay = (): Day => ({ water: 0, done: {}, officeMin: 0, walkMin: 0, padel: false, cravings: [], mood: 0, feedback: '', closed: false })
-
-// ───────────────────────── Helpers ─────────────────────────
-const ymd = (d = new Date()) => {
-  const z = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
-  return z.toISOString().slice(0, 10)
-}
-const addDays = (s: string, n: number) => {
-  const d = new Date(s + 'T12:00:00')
-  d.setDate(d.getDate() + n)
-  return ymd(d)
-}
-const weekStart = (s: string) => {
-  const d = new Date(s + 'T12:00:00')
-  const wd = (d.getDay() + 6) % 7 // lundi = 0
-  return addDays(s, -wd)
-}
-const fmtH = (min: number) => `${Math.floor(min / 60)}h${String(min % 60).padStart(2, '0')}`
-
-function dayScore(d: Day) {
-  const max = TASKS.reduce((a, t) => a + t.points, 0) + 20 + 20 + 15
-  let pts = 0
-  for (const t of TASKS) if (d.done[t.id]) pts += t.points
-  pts += Math.round(Math.min(d.water / WATER_GOAL, 1) * 20)
-  pts += Math.round(Math.min(d.officeMin / OFFICE_GOAL, 1) * 20)
-  pts += Math.round(Math.min(d.walkMin / WALK_GOAL, 1) * 15)
-  pts += d.padel ? 25 : 0
-  pts -= d.cravings.length * 5
-  return { pts: Math.max(pts, 0), pct: Math.max(0, Math.min(100, Math.round((Math.max(pts, 0) / max) * 100))) }
-}
-
+// ───────────────────────── Persistance ─────────────────────────
 function useStore() {
   const [store, setStore] = useState<Store | null>(null)
   useEffect(() => {
+    let s: Store
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setStore(raw ? JSON.parse(raw) : { days: {} })
+      s = migrate(raw ? JSON.parse(raw) : null)
     } catch {
-       
-      setStore({ days: {} })
+      s = migrate(null)
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setStore(s)
   }, [])
   useEffect(() => {
     if (!store) return
@@ -86,82 +29,11 @@ function useStore() {
   return [store, setStore] as const
 }
 
-// ───────────────────────── Coach (règles) ─────────────────────────
-function buildReport(date: string, store: Store) {
-  const d = store.days[date] ?? emptyDay()
-  const { pct } = dayScore(d)
-  const ok: string[] = []
-  const ko: string[] = []
-  for (const t of TASKS) (d.done[t.id] ? ok : ko).push(t.label)
-  ;(d.water >= WATER_GOAL ? ok : ko).push(`Eau ${(d.water / 1000).toFixed(2)} L / 2 L`)
-  ;(d.officeMin >= OFFICE_GOAL ? ok : ko).push(`Bureau ${fmtH(d.officeMin)} / 4h`)
-  ;(d.walkMin >= WALK_GOAL ? ok : ko).push(`Marche ${d.walkMin} min / ${WALK_GOAL}`)
-  if (d.padel) ok.push('Padel fait')
-  return { d, pct, ok, ko }
-}
-
-function coachAdvice(date: string, store: Store): string[] {
-  const { d, pct } = buildReport(date, store)
-  const out: string[] = []
-  const last7 = Array.from({ length: 7 }, (_, i) => store.days[addDays(date, -i)]).filter(Boolean) as Day[]
-  const count = (f: (x: Day) => boolean) => last7.filter(f).length
-
-  if (pct >= 85) out.push('🔥 Grosse journée. Ne change rien, répète demain.')
-  else if (pct >= 60) out.push('👍 Journée solide. Choisis UNE chose à améliorer demain, pas dix.')
-  else out.push('💛 Journée plus dure : pas grave. Demain on vise juste 3 victoires faciles (eau, compléments, 20 min de marche).')
-
-  if (d.water < WATER_GOAL * 0.75) {
-    out.push(count(x => x.water < 1500) >= 3
-      ? '💧 Eau insuffisante plusieurs jours de suite : mets une bouteille de 50 cl sur ton bureau et vide-en 1 à chaque heure ronde (4 le matin, 4 l’après-midi).'
-      : '💧 Eau en retard : un grand verre au réveil + un avant chaque repas te fait déjà 1 L.')
-  }
-  if (d.officeMin < OFFICE_GOAL * 0.5) {
-    out.push('🏢 Bureau court : essaie 2 blocs de 2h (9h-11h / 14h-16h) plutôt que d’attendre l’envie. Si pas de boulot urgent, 1h30 compte quand même.')
-  }
-  if (d.walkMin < WALK_GOAL) {
-    out.push('🚶 Marche : accroche-la à un moment fixe (10 min après le déjeuner + 10 min avant le dîner). Plus facile que « quand j’ai le temps ».')
-  }
-  const sugar = count(x => x.cravings.some(c => c.type === 'sucre'))
-  const fat = count(x => x.cravings.some(c => c.type === 'gras'))
-  if (d.cravings.length >= 2 || sugar >= 3) {
-    out.push('🍫 Craquages sucre fréquents : vérifie 3 choses — assez mangé de protéines au repas ? assez dormi ? stress ? Garde un en-cas prévu (fruit + amandes) pour 16h.')
-  } else if (fat >= 3) {
-    out.push('🍟 Gras récurrent : souvent un repas trop léger avant. Ajoute féculents + protéines au dîner, et décide du « plaisir » à l’avance (1 fois, planifié).')
-  }
-  if (!d.done['coucher'] || !d.done['ecran']) {
-    out.push('😴 Sommeil : avance le coucher de 15 min chaque soir (pas d’un coup). Écran coupé = point facile à gagner.')
-  }
-  const padelWeek = Array.from({ length: 7 }, (_, i) => store.days[addDays(weekStart(date), i)]).filter(x => x?.padel).length
-  if (padelWeek < PADEL_GOAL) {
-    const left = Math.max(0, 6 - ((new Date(date + 'T12:00:00').getDay() + 6) % 7))
-    out.push(`🎾 Padel : ${padelWeek}/${PADEL_GOAL} cette semaine, il reste ${left} jour(s). Réserve le créneau maintenant, c’est ce qui fait la différence.`)
-  }
-  if (d.mood && d.mood <= 2) out.push('🫶 Moral bas aujourd’hui : coupe la liste en deux demain, garde eau + marche + compléments.')
-  return out
-}
-
-function reportText(date: string, store: Store) {
-  const { d, pct, ok, ko } = buildReport(date, store)
-  return [
-    `Bilan du ${date} — score ${pct}%`,
-    '',
-    '✅ Fait :', ...(ok.length ? ok.map(x => `- ${x}`) : ['- rien']),
-    '',
-    '❌ Pas fait :', ...(ko.length ? ko.map(x => `- ${x}`) : ['- rien']),
-    '',
-    `Craquages : ${d.cravings.length ? d.cravings.map(c => `${c.type}${c.note ? ` (${c.note})` : ''}`).join(', ') : 'aucun'}`,
-    `Moral : ${d.mood || 'non noté'}/5`,
-    `Mon retour : ${d.feedback || '—'}`,
-    '',
-    'Aide-moi à adapter mon programme pour demain.',
-  ].join('\n')
-}
-
 // ───────────────────────── UI bits ─────────────────────────
 function Card({ title, children, right }: { title: string; children: React.ReactNode; right?: React.ReactNode }) {
   return (
     <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between gap-2">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">{title}</h2>
         {right}
       </div>
@@ -172,11 +44,41 @@ function Card({ title, children, right }: { title: string; children: React.React
 function Bar({ pct, color = 'var(--violet)' }: { pct: number; color?: string }) {
   return (
     <div className="h-3 w-full overflow-hidden rounded-full bg-[var(--surface)]">
-      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(100, pct)}%`, background: color }} />
+      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.max(0, Math.min(100, pct))}%`, background: color }} />
     </div>
   )
 }
 const btn = 'rounded-xl bg-[var(--surface)] px-3 py-2 text-sm font-semibold border border-[var(--border)] active:scale-95 hover:border-[var(--violet)] transition'
+const input = 'min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm outline-none'
+
+function Check({ checked, onChange, children, right }: { checked: boolean; onChange: (v: boolean) => void; children: React.ReactNode; right?: React.ReactNode }) {
+  return (
+    <label className="flex cursor-pointer items-center gap-3 rounded-xl bg-[var(--surface)] p-3">
+      <input type="checkbox" className="h-5 w-5 shrink-0 accent-[var(--violet)]" checked={checked} onChange={e => onChange(e.target.checked)} />
+      <span className={`flex-1 ${checked ? 'line-through opacity-50' : ''}`}>{children}</span>
+      {right}
+    </label>
+  )
+}
+
+function WeightChart({ store }: { store: Store }) {
+  const { weights, goalWeight } = store.settings
+  const pts = Object.entries(weights).sort(([a], [b]) => a.localeCompare(b))
+  if (pts.length < 2) return <p className="text-xs text-[var(--muted)]">Ajoute une pesée dans quelques jours pour voir la courbe.</p>
+  const vals = pts.map(([, v]) => v)
+  const max = Math.max(...vals, goalWeight) + 1
+  const min = Math.min(...vals, goalWeight) - 1
+  const W = 300, H = 90
+  const x = (i: number) => (i / (pts.length - 1)) * W
+  const y = (v: number) => H - ((v - min) / (max - min)) * H
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="h-24 w-full overflow-visible">
+      <line x1="0" x2={W} y1={y(goalWeight)} y2={y(goalWeight)} stroke="var(--green)" strokeDasharray="4 4" />
+      <polyline fill="none" stroke="var(--violet)" strokeWidth="2.5" points={pts.map(([, v], i) => `${x(i)},${y(v)}`).join(' ')} />
+      {pts.map(([, v], i) => <circle key={i} cx={x(i)} cy={y(v)} r="3" fill="var(--violet)" />)}
+    </svg>
+  )
+}
 
 // ───────────────────────── Page ─────────────────────────
 export default function CoachPage() {
@@ -185,6 +87,9 @@ export default function CoachPage() {
   const [now, setNow] = useState(() => new Date())
   const [cNote, setCNote] = useState('')
   const [copied, setCopied] = useState(false)
+  const [wInput, setWInput] = useState('')
+  const [suppName, setSuppName] = useState('')
+  const [suppTime, setSuppTime] = useState('09:00')
   const [notif, setNotif] = useState<'default' | 'granted' | 'denied' | 'unsupported'>(() =>
     typeof Notification === 'undefined' ? 'unsupported' : Notification.permission)
 
@@ -193,53 +98,56 @@ export default function CoachPage() {
     return () => clearInterval(id)
   }, [])
 
-  const isToday = date === ymd(now)
-  const day = store?.days[date] ?? emptyDay()
+  const today = ymd(now)
+  const isToday = date === today
+  const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
 
   const update = useCallback((fn: (d: Day) => Day) => {
-    setStore(s => (s ? { days: { ...s.days, [date]: fn(s.days[date] ?? emptyDay()) } } : s))
+    setStore(s => (s ? { ...s, days: { ...s.days, [date]: fn(s.days[date] ?? emptyDay()) } } : s))
   }, [date, setStore])
 
-  // Rappels : notification navigateur quand l'heure d'une tâche arrive (page ouverte)
-  const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+  const tasks = useMemo(() => (store ? tasksFor(date, store) : []), [store, date])
+  const day = store?.days[date] ?? emptyDay()
+
+  // Notifications (onglet ouvert)
   useEffect(() => {
     if (!store || !isToday || notif !== 'granted') return
-    for (const t of TASKS) {
-      if (t.time === hhmm && !store.days[date]?.done[t.id]) {
+    const todayDone = store.days[today]?.done ?? {}
+    for (const t of tasksFor(today, store)) {
+      if (fmtClock(t.min) === hhmm && !todayDone[t.id]) {
         try { new Notification(`${t.emoji} ${t.label}`, { tag: t.id }) } catch { /* ignore */ }
       }
     }
-    if (hhmm === '21:00') { try { new Notification('📋 Bilan du soir : ouvre ton coach', { tag: 'bilan' }) } catch { /* ignore */ } }
   }, [hhmm]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const { pts, pct } = dayScore(day)
-  const totalXp = useMemo(() => Object.values(store?.days ?? {}).reduce((a, d) => a + dayScore(d).pts, 0), [store])
-  const level = Math.floor(totalXp / 250) + 1
-  const levelPct = ((totalXp % 250) / 250) * 100
+  const { pts, pct } = store ? scoreOn(date, store) : { pts: 0, pct: 0 }
+  const totalXp = useMemo(() => (store ? Object.keys(store.days).reduce((a, k) => a + scoreOn(k, store).pts, 0) : 0), [store])
+  const level = Math.floor(totalXp / 300) + 1
   const streak = useMemo(() => {
     if (!store) return 0
     let n = 0
-    let cur = ymd(now)
-    if (!store.days[cur] || dayScore(store.days[cur]).pct < 60) cur = addDays(cur, -1) // aujourd'hui pas encore fini
-    while (store.days[cur] && dayScore(store.days[cur]).pct >= 60) { n++; cur = addDays(cur, -1) }
+    let cur = today
+    if (!store.days[cur] || scoreOn(cur, store).pct < 60) cur = addDays(cur, -1)
+    while (store.days[cur] && scoreOn(cur, store).pct >= 60) { n++; cur = addDays(cur, -1) }
     return n
-  }, [store, now])
-  const padelWeek = useMemo(() => {
-    if (!store) return 0
-    return Array.from({ length: 7 }, (_, i) => store.days[addDays(weekStart(date), i)]).filter(d => d?.padel).length
-  }, [store, date])
+  }, [store, today])
   const last7 = useMemo(() => Array.from({ length: 7 }, (_, i) => {
     const k = addDays(date, i - 6)
-    return { k, pct: store?.days[k] ? dayScore(store.days[k]).pct : 0 }
+    return { k, pct: store && store.days[k] ? scoreOn(k, store).pct : 0 }
   }), [store, date])
-
-  const nextTask = isToday ? TASKS.find(t => t.time >= hhmm && !day.done[t.id]) : undefined
-  const overdue = isToday ? TASKS.filter(t => t.time < hhmm && !day.done[t.id]) : []
 
   if (!store) return <main className="p-6 text-[var(--muted)]">Chargement…</main>
 
+  const { settings: S } = store
+  const sl = sleepFor(date, S.sleep)
+  const nowEff = eff(now.getHours() * 60 + now.getMinutes())
+  const overdue = isToday ? tasks.filter(t => eff(t.min) < nowEff && !day.done[t.id]) : []
+  const nextTask = isToday ? tasks.find(t => eff(t.min) >= nowEff && !day.done[t.id]) : undefined
+  const cw = currentWeight(store)
+  const lost = S.startWeight - cw
+  const weeksLeft = Math.max(0, Math.ceil((cw - S.goalWeight) / 0.5))
   const advice = day.closed ? coachAdvice(date, store) : []
-  const waterPct = (day.water / WATER_GOAL) * 100
+  const setSettings = (fn: (s: typeof S) => typeof S) => setStore(st => (st ? { ...st, settings: fn(st.settings) } : st))
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 p-4 pb-24">
@@ -255,23 +163,22 @@ export default function CoachPage() {
           </div>
           <div className="flex gap-1">
             <button className={btn} onClick={() => setDate(addDays(date, -1))}>←</button>
-            <button className={btn} onClick={() => setDate(ymd())}>Auj.</button>
+            <button className={btn} onClick={() => setDate(today)}>Auj.</button>
             <button className={btn} onClick={() => setDate(addDays(date, 1))} disabled={isToday}>→</button>
           </div>
         </div>
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className="rounded-xl bg-[var(--card)] p-2"><div className="text-xl font-bold">🔥 {streak}</div><div className="text-[11px] text-[var(--muted)]">jours d’affilée</div></div>
-          <div className="rounded-xl bg-[var(--card)] p-2"><div className="text-xl font-bold">Niv. {level}</div><div className="mt-1"><Bar pct={levelPct} color="var(--gold)" /></div></div>
-          <div className="rounded-xl bg-[var(--card)] p-2"><div className="text-xl font-bold">{pct}%</div><div className="text-[11px] text-[var(--muted)]">{pts} pts aujourd’hui</div></div>
+          <div className="rounded-xl bg-[var(--card)] p-2"><div className="text-xl font-bold">Niv. {level}</div><div className="text-[11px] text-[var(--muted)]">{totalXp % 300}/300 XP</div></div>
+          <div className="rounded-xl bg-[var(--card)] p-2"><div className="text-xl font-bold">{pct}%</div><div className="text-[11px] text-[var(--muted)]">{pts} pts</div></div>
         </div>
         <Bar pct={pct} color={pct >= 85 ? 'var(--green)' : pct >= 60 ? 'var(--violet)' : 'var(--amber)'} />
       </header>
 
-      {/* Rappel en cours */}
       {isToday && (overdue.length > 0 || nextTask) && (
         <div className="rounded-2xl border border-[var(--violet)] bg-[var(--violet-dim)] p-3 text-sm">
-          {overdue.length > 0 && <div>⏳ En retard : {overdue.map(t => t.emoji + ' ' + t.label).join(' · ')}</div>}
-          {nextTask && <div className="text-[var(--muted)]">Prochain : {nextTask.emoji} {nextTask.label} à {nextTask.time}</div>}
+          {overdue.length > 0 && <div>⏳ En retard : {overdue.map(t => `${t.emoji} ${t.label}`).join(' · ')}</div>}
+          {nextTask && <div className="text-[var(--muted)]">Prochain : {nextTask.emoji} {nextTask.label} à {fmtClock(nextTask.min)}</div>}
         </div>
       )}
       {notif === 'default' && (
@@ -280,71 +187,117 @@ export default function CoachPage() {
         </button>
       )}
 
+      {/* Sommeil */}
+      <Card title="🌙 Plan sommeil progressif" right={<span className="text-xs text-[var(--muted)]">{sl.done ? 'objectif atteint 🎉' : `prochain cran dans ${sl.nextIn} j`}</span>}>
+        <div className="grid grid-cols-2 gap-2 text-center">
+          <div className="rounded-xl bg-[var(--surface)] p-3"><div className="text-xs text-[var(--muted)]">Lever</div><div className="text-2xl font-bold">{fmtClock(sl.wake)}</div></div>
+          <div className="rounded-xl bg-[var(--surface)] p-3"><div className="text-xs text-[var(--muted)]">Coucher</div><div className="text-2xl font-bold">{fmtClock(sl.bed)}</div></div>
+        </div>
+        <p className="mt-2 text-xs text-[var(--muted)]">
+          Départ 03:00 → 00:30 (coucher) et 10:30 → 08:00 (lever), −{S.sleep.stepMin} min tous les {S.sleep.everyDays} jours. Lumière vive + eau dès le lever, pas de café après 14h.
+        </p>
+        {!sl.done && (
+          <button className={btn + ' mt-2'} onClick={() => setSettings(s => ({ ...s, sleep: { ...s.sleep, startDate: addDays(s.sleep.startDate, 3) } }))}>
+            Trop dur : garder cet horaire 3 jours de plus
+          </button>
+        )}
+      </Card>
+
+      {/* Programme */}
+      <Card title="📅 Programme du jour">
+        <ul className="space-y-2">
+          {tasks.map(t => (
+            <li key={t.id}>
+              <Check checked={!!day.done[t.id]} onChange={v => update(d => ({ ...d, done: { ...d.done, [t.id]: v } }))}
+                right={<span className="text-xs text-[var(--muted)]">{fmtClock(t.min)} · +{t.points}</span>}>
+                {t.emoji} {t.label}
+                {t.hint && <span className="block text-[11px] text-[var(--muted)]">{t.hint}</span>}
+              </Check>
+            </li>
+          ))}
+        </ul>
+        {S.supplements.length === 0 && <p className="mt-2 text-xs text-[var(--amber)]">Aucun complément enregistré : ajoute-les plus bas (section Réglages).</p>}
+      </Card>
+
       {/* Eau */}
       <Card title="💧 Eau — objectif 2 L" right={<span className="text-sm font-bold">{(day.water / 1000).toFixed(2)} L</span>}>
-        <Bar pct={waterPct} color="#38BDF8" />
+        <Bar pct={(day.water / WATER_GOAL) * 100} color="#38BDF8" />
         <div className="mt-3 flex flex-wrap gap-2">
-          {[250, 500, 750].map(ml => (
-            <button key={ml} className={btn} onClick={() => update(d => ({ ...d, water: d.water + ml }))}>+{ml} ml</button>
-          ))}
+          {[250, 500, 750].map(ml => <button key={ml} className={btn} onClick={() => update(d => ({ ...d, water: d.water + ml }))}>+{ml} ml</button>)}
           <button className={btn} onClick={() => update(d => ({ ...d, water: Math.max(0, d.water - 250) }))}>−250</button>
         </div>
         {day.water >= WATER_GOAL && <p className="mt-2 text-sm text-[var(--green)]">✅ Objectif eau atteint !</p>}
       </Card>
 
-      {/* Tâches */}
-      {(['matin', 'journee', 'soir'] as const).map(g => (
-        <Card key={g} title={g === 'matin' ? '🌅 Matin' : g === 'journee' ? '☀️ Journée' : '🌙 Soir'}>
-          <ul className="space-y-2">
-            {TASKS.filter(t => t.group === g).map(t => (
-              <li key={t.id}>
-                <label className="flex cursor-pointer items-center gap-3 rounded-xl bg-[var(--surface)] p-3">
-                  <input type="checkbox" className="h-5 w-5 accent-[var(--violet)]" checked={!!day.done[t.id]}
-                    onChange={e => update(d => ({ ...d, done: { ...d.done, [t.id]: e.target.checked } }))} />
-                  <span className={day.done[t.id] ? 'flex-1 line-through opacity-50' : 'flex-1'}>{t.emoji} {t.label}</span>
-                  <span className="text-xs text-[var(--muted)]">{t.time} · +{t.points}</span>
-                </label>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      ))}
+      {/* Protéines */}
+      <Card title="🥚 Protéines — sans te priver" right={<span className="text-sm font-bold">{day.protein} / {PROTEIN_GOAL} g</span>}>
+        <Bar pct={(day.protein / PROTEIN_GOAL) * 100} color="var(--green)" />
+        <div className="mt-3 flex flex-wrap gap-2">
+          {[10, 20, 30].map(g => <button key={g} className={btn} onClick={() => update(d => ({ ...d, protein: d.protein + g }))}>+{g} g</button>)}
+          <button className={btn} onClick={() => update(d => ({ ...d, protein: Math.max(0, d.protein - 10) }))}>−10</button>
+        </div>
+        <p className="mt-2 text-xs text-[var(--muted)]">Repères : 1 œuf ≈ 6 g · poulet 100 g ≈ 25 g · skyr 150 g ≈ 15 g · thon 1 boîte ≈ 25 g.</p>
+      </Card>
 
       {/* Bureau */}
-      <Card title="🏢 Bureau — objectif 4h" right={<span className="text-sm font-bold">{fmtH(day.officeMin)}</span>}>
+      <Card title="🏢 Travail — objectif 4h" right={<span className="text-sm font-bold">{fmtH(day.officeMin)}</span>}>
         <Bar pct={(day.officeMin / OFFICE_GOAL) * 100} color="var(--gold)" />
         <div className="mt-3 flex gap-2">
           <button className={btn} onClick={() => update(d => ({ ...d, officeMin: d.officeMin + 30 }))}>+30 min</button>
           <button className={btn} onClick={() => update(d => ({ ...d, officeMin: d.officeMin + 60 }))}>+1h</button>
           <button className={btn} onClick={() => update(d => ({ ...d, officeMin: Math.max(0, d.officeMin - 30) }))}>−30</button>
         </div>
-        <p className="mt-2 text-xs text-[var(--muted)]">Pas de boulot ? Laisse à 0, ça ne te pénalise pas autant que ça te motive quand il y en a.</p>
+        <p className="mt-2 text-xs text-[var(--muted)]">Bloc 1 : midi → crèche (15h30). Bloc 2 : après la crèche, 2–3h. Au-delà de 4h = bonus, pas obligation.</p>
       </Card>
 
       {/* Sport */}
-      <Card title="🚶 Marche & 🎾 Padel" right={<span className="text-sm font-bold">Padel {padelWeek}/{PADEL_GOAL} cette semaine</span>}>
-        <div className="mb-1 flex justify-between text-sm"><span>Marche</span><b>{day.walkMin} / {WALK_GOAL} min</b></div>
+      <Card title="🏃 Mouvement">
+        <div className="mb-1 flex justify-between text-sm"><span>🚶 Marche</span><b>{day.walkMin} / {WALK_GOAL} min</b></div>
         <Bar pct={(day.walkMin / WALK_GOAL) * 100} color="var(--green)" />
         <div className="mt-3 flex flex-wrap gap-2">
           {[10, 20, 30].map(m => <button key={m} className={btn} onClick={() => update(d => ({ ...d, walkMin: d.walkMin + m }))}>+{m} min</button>)}
           <button className={btn} onClick={() => update(d => ({ ...d, walkMin: Math.max(0, d.walkMin - 10) }))}>−10</button>
         </div>
-        <label className="mt-3 flex items-center gap-3 rounded-xl bg-[var(--surface)] p-3">
-          <input type="checkbox" className="h-5 w-5 accent-[var(--violet)]" checked={day.padel} onChange={e => update(d => ({ ...d, padel: e.target.checked }))} />
-          <span>🎾 J’ai joué au padel (+25)</span>
-        </label>
+        <div className="mt-3 space-y-2">
+          {([
+            ['padel', '🎾 Padel', WEEKLY.padel, '+25'],
+            ['kine', '🩺 Kiné', WEEKLY.kine, '+15'],
+            ['renfo', '🦵 Renfo jambes', WEEKLY.renfo, '+20'],
+          ] as const).map(([key, label, goal, pt]) => (
+            <Check key={key} checked={day[key]} onChange={v => update(d => ({ ...d, [key]: v }))}
+              right={<span className="text-xs text-[var(--muted)]">{weekCount(date, store, key)}/{goal} sem. · {pt}</span>}>
+              {label}
+            </Check>
+          ))}
+        </div>
+      </Card>
+
+      {/* Poids */}
+      <Card title="⚖️ Poids" right={<span className="text-sm font-bold">{cw} kg → {S.goalWeight}</span>}>
+        <Bar pct={((S.startWeight - cw) / (S.startWeight - S.goalWeight)) * 100} color="var(--violet)" />
+        <p className="mt-2 text-xs text-[var(--muted)]">
+          {lost >= 0 ? `−${lost.toFixed(1)} kg depuis le début` : `+${(-lost).toFixed(1)} kg depuis le début`} · à −0,5 kg/sem. ≈ {weeksLeft} semaines restantes. Pèse-toi 1 fois/semaine, même jour, au réveil.
+        </p>
+        <div className="mt-3"><WeightChart store={store} /></div>
+        <form className="mt-3 flex gap-2" onSubmit={e => {
+          e.preventDefault()
+          const v = parseFloat(wInput.replace(',', '.'))
+          if (!v || v < 30 || v > 300) return
+          setSettings(s => ({ ...s, weights: { ...s.weights, [date]: v } }))
+          setWInput('')
+        }}>
+          <input className={input + ' flex-1'} inputMode="decimal" placeholder="Poids du jour (kg)" value={wInput} onChange={e => setWInput(e.target.value)} />
+          <button className={btn} type="submit">Enregistrer</button>
+        </form>
       </Card>
 
       {/* Craquages */}
-      <Card title="🍫 Craquages (sans jugement)" right={<span className="text-xs text-[var(--muted)]">−5 pts chacun</span>}>
-        <div className="flex gap-2">
-          <input value={cNote} onChange={e => setCNote(e.target.value)} placeholder="Quoi / quand ? (optionnel)"
-            className="min-w-0 flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm outline-none" />
-        </div>
-        <div className="mt-2 flex gap-2">
-          {(['sucre', 'gras', 'autre'] as const).map(type => (
+      <Card title="🍫 Craquages (sans jugement)" right={<span className="text-xs text-[var(--muted)]">−5 pts, « plaisir prévu » = 0</span>}>
+        <input value={cNote} onChange={e => setCNote(e.target.value)} placeholder="Quoi / pourquoi ? (optionnel)" className={input + ' w-full'} />
+        <div className="mt-2 flex flex-wrap gap-2">
+          {(['sucre', 'gras', 'autre', 'plaisir'] as const).map(type => (
             <button key={type} className={btn} onClick={() => { update(d => ({ ...d, cravings: [...d.cravings, { type, note: cNote, t: hhmm }] })); setCNote('') }}>
-              + {type}
+              + {type === 'plaisir' ? 'plaisir prévu' : type}
             </button>
           ))}
         </div>
@@ -376,7 +329,7 @@ export default function CoachPage() {
         </div>
       </Card>
 
-      {/* Bilan du soir */}
+      {/* Bilan */}
       <Card title="📋 Bilan du soir" right={day.closed ? <span className="text-xs text-[var(--green)]">clôturé</span> : undefined}>
         <div className="mb-3 flex items-center gap-2 text-sm">
           Moral :
@@ -386,15 +339,14 @@ export default function CoachPage() {
           ))}
         </div>
         <textarea value={day.feedback} onChange={e => update(d => ({ ...d, feedback: e.target.value }))}
-          placeholder="Ton retour : qu’est-ce qui a été dur ? Pourquoi ?"
-          rows={3} className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 text-sm outline-none" />
+          placeholder="Ton retour : qu’est-ce qui a été dur ? Pourquoi ?" rows={3}
+          className={input + ' w-full'} />
         <div className="mt-3 flex flex-wrap gap-2">
           <button className={btn + ' bg-[var(--violet)] text-white'} onClick={() => update(d => ({ ...d, closed: true }))}>Terminer la journée</button>
           <button className={btn} onClick={async () => {
             try { await navigator.clipboard.writeText(reportText(date, store)); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch { /* ignore */ }
           }}>{copied ? 'Copié ✓' : 'Copier le bilan pour Claude'}</button>
         </div>
-
         {day.closed && (
           <div className="mt-4 space-y-2 rounded-xl bg-[var(--surface)] p-3 text-sm">
             <div className="font-semibold">🤖 Coach</div>
@@ -402,6 +354,29 @@ export default function CoachPage() {
             <p className="pt-1 text-xs text-[var(--muted)]">Pour un conseil sur-mesure : « Copier le bilan », colle-le dans Claude avec ton ressenti.</p>
           </div>
         )}
+      </Card>
+
+      {/* Réglages */}
+      <Card title="⚙️ Réglages — compléments">
+        <ul className="mb-3 space-y-2">
+          {S.supplements.map(sp => (
+            <li key={sp.id} className="flex items-center justify-between rounded-xl bg-[var(--surface)] px-3 py-2 text-sm">
+              <span>💊 {sp.name} · {sp.time}</span>
+              <button className="text-[var(--muted)]" onClick={() => setSettings(s => ({ ...s, supplements: s.supplements.filter(x => x.id !== sp.id) }))}>✕</button>
+            </li>
+          ))}
+        </ul>
+        <form className="flex flex-wrap gap-2" onSubmit={e => {
+          e.preventDefault()
+          if (!suppName.trim()) return
+          setSettings(s => ({ ...s, supplements: [...s.supplements, { id: String(Date.now()), name: suppName.trim(), time: suppTime }] }))
+          setSuppName('')
+        }}>
+          <input className={input + ' flex-1'} placeholder="Nom + dose (ex : Magnésium 300 mg)" value={suppName} onChange={e => setSuppName(e.target.value)} />
+          <input className={input} type="time" value={suppTime} onChange={e => setSuppTime(e.target.value || '09:00')} />
+          <button className={btn} type="submit">Ajouter</button>
+        </form>
+        <p className="mt-2 text-xs text-[var(--muted)]">Heure à adapter à ton plan sommeil (ex : {fmtClock(parseClock('09:00'))} le matin, le soir ~1h avant le coucher).</p>
       </Card>
     </main>
   )
