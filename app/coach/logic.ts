@@ -149,7 +149,7 @@ export function tasksFor(date: string, store: Store): Task[] {
     { id: 'repas2', label: 'Repas du midi', min: 13 * 60 + 30, emoji: '🥗', points: 10 },
     { id: 'collation', label: 'Collation prévue (fruit + protéines)', min: 17 * 60, emoji: '🍎', points: 10, hint: 'Évite le craquage de fin d’après-midi' },
     { id: 'repas3', label: 'Dîner', min: 20 * 60, emoji: '🍽️', points: 10 },
-    { id: 'soins', label: 'Soins du visage', min: sl.bed - 60, emoji: '🧴', points: 15 },
+    { id: 'soins', label: 'Soins du visage', min: sl.bed - 60, emoji: '🧴', points: 15, hint: 'Nettoyer, puis crème de nuit Vitamine C (Kruidvat)' },
     { id: 'ecran', label: 'Écrans coupés', min: sl.bed - 45, emoji: '📵', points: 10 },
     { id: 'coucher', label: 'Au lit à l’heure du plan', min: sl.bed, emoji: '😴', points: 20 },
   ]
